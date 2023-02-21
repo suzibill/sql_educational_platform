@@ -10,3 +10,9 @@ create table friends (
     peer1 varchar not null,
     peer2 varchar not null
 );
+
+create table tasks (
+    title varchar primary key,
+    parent_task varchar not null,
+    max_xp bigint not null
+);
