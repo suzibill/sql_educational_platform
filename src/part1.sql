@@ -8,7 +8,8 @@ create table friends (
     peer1 varchar not null,
     peer2 varchar not null,
     constraint fk_friends_peer1 foreign key (peer1) references peers(nickname),
-    constraint fk_friends_peer2 foreign key (peer2) references peers(nickname)
+    constraint fk_friends_peer2 foreign key (peer2) references peers(nickname),
+    constraint check_peer_nick check(peer1 <>peer2)
 );
 
 create table recommendations (
