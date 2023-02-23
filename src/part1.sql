@@ -33,8 +33,8 @@ create table time_tracking (
     peer varchar not null,
     date_ date not null,
     time_ time not null,
-    state varchar not null,
-    constraint check_time_tracking_state check (state in ('In', 'Out')),
+    state integer not null,
+    constraint check_time_tracking_state check (state in ('1', '2')),
     constraint fk_time_tracking_peer foreign key (peer) references peers(nickname)
 );
 
