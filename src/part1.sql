@@ -33,8 +33,8 @@ create table time_tracking (
     peer varchar not null,
     date_ date not null,
     time_ time not null,
-    state integer not null,
-    constraint check_time_tracking_state check (state in ('1', '2')),
+    state_ integer not null,
+    constraint check_time_tracking_state check (state_ in ('1', '2')),
     constraint fk_time_tracking_peer foreign key (peer) references peers(nickname)
 );
 
@@ -51,9 +51,9 @@ create table p2p (
     id bigint primary key,
     check_ bigint not null,
     checking_peer varchar not null,
-    state varchar not null,
+    state_ varchar not null,
     time_ timestamp default current_timestamp,
-    constraint check_p2p_state check (state in ('Start', 'Success', 'Failure')),
+    constraint check_p2p_state check (state_ in ('Start', 'Success', 'Failure')),
     constraint fk_p2p_check_ foreign key (check_) references checks(id),
     constraint fk_p2p_checking_peer foreign key (checking_peer) references peers(nickname)
 );
@@ -61,9 +61,9 @@ create table p2p (
 create table verter (
     id bigint primary key,
     check_ bigint not null,
-    state varchar not null,
+    state_ varchar not null,
     time_ timestamp default current_timestamp,
-    constraint check_p2p_state check (state in ('Start', 'Success', 'Failure')),
+    constraint check_p2p_state check (state_ in ('Start', 'Success', 'Failure')),
     constraint fk_verter_check_ foreign key (check_) references checks(id)
 );
 
