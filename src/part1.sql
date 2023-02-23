@@ -17,7 +17,8 @@ create table recommendations (
     peer varchar not null,
     recommended_peer varchar not null,
     constraint fk_recommendations_peer foreign key (peer) references peers(nickname),
-    constraint fk_recommendations_recommended_peer foreign key (recommended_peer) references peers(nickname)
+    constraint fk_recommendations_recommended_peer foreign key (recommended_peer) references peers(nickname),
+    constraint check_peer_recommended check(peer <> recommended_peer)
 );
 
 create table transferred_points (
