@@ -38,6 +38,13 @@ create table time_tracking (
     constraint fk_time_tracking_peer foreign key (peer) references peers(nickname)
 );
 
+
+create table tasks (
+    title varchar primary key,
+    parent_task varchar not null,
+    max_xp bigint not null
+);
+
 create table checks (
     id bigint primary key,
     peer varchar not null,
@@ -74,8 +81,3 @@ create table xp (
     constraint fk_xp_check_ foreign key (check_) references checks(id)
 );
 
-create table tasks (
-    title varchar primary key,
-    parent_task varchar not null,
-    max_xp bigint not null
-);
