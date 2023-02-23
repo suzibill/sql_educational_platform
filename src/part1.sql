@@ -27,7 +27,8 @@ create table transferred_points (
     checked_peer varchar not null,
     point_amount int not null,
     constraint fk_friends_checking_peer foreign key (checking_peer) references peers(nickname),
-    constraint fk_friends_checked_peer foreign key (checked_peer) references peers(nickname)
+    constraint fk_friends_checked_peer foreign key (checked_peer) references peers(nickname),
+    constraint check_peer_nick check(checking_peer <>checked_peer)
 );
 
 create table time_tracking (
