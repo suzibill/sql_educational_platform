@@ -44,8 +44,9 @@ create table time_tracking (
 
 create table tasks (
     title varchar primary key,
-    parent_task varchar not null,
-    max_xp bigint not null
+    parent_task varchar default null,
+    max_xp numeric not null,
+    constraint fk_title_parent_task foreign key(parent_task) references tasks(title)
 );
 
 create table checks (
