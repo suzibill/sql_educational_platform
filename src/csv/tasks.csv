@@ -1,0 +1,7 @@
+SimpleBashUtils,None,250
+s21_string,SimpleBashUtils,500
+s21_math,s21_string,300
+s21_decimal,s21_math,350
+s21_matrix,s21_decimal,200
+SmartCalc_v1.0,s21_matrix,500
+3DViewer_v1.0,SmartCalc_v1.0,750
