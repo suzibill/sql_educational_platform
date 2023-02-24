@@ -34,6 +34,7 @@ create table transferred_points (
     constraint fk_friends_checked_peer foreign key (checked_peer) references peers(nickname),
     constraint check_peer_nick check(checking_peer <> checked_peer)
 );
+COPY transferred_points FROM '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/transfered_points.csv' DELIMITER ',' CSV;
 
 create table time_tracking (
     id bigint primary key,
