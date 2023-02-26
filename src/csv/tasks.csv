@@ -1,10 +1,10 @@
 C2_SimpleBashUtils,None,250
-C3_s21_string,SimpleBashUtils,500
-C4_s21_math,s21_string,300
-C5_s21_decimal,s21_math,350
-C6_s21_matrix,s21_decimal,200
-C7_SmartCalc_v1_0,s21_matrix,500
-C8_3DViewer_v1_0,SmartCalc_v1_0,750
+C3_s21_string,C2_SimpleBashUtils,500
+C4_s21_math,C3_s21_string,300
+C5_s21_decimal,C4_s21_math,350
+C6_s21_matrix,C5_s21_decimal,200
+C7_SmartCalc_v1_0,C6_s21_matrix,500
+C8_3DViewer_v1_0,C7_SmartCalc_v1_0,750
 DO1_Linux,C3_s21_string,300
 DO2_LinuxNetwork,DO1_Linux,250
 DO3_LinuxMonitoring_v1.0,DO2_LinuxNetwork,350

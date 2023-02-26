@@ -6,7 +6,7 @@ create table
 
 COPY peers
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/peers.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/peers.csv' DELIMITER ',' CSV;
 
 -- \COPY peers FROM 'csv/peers.csv' DELIMITER ',' CSV;
 
@@ -22,7 +22,7 @@ create table
 
 COPY friends
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/friends.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/friends.csv' DELIMITER ',' CSV;
 
 create table
     recommendations (
@@ -36,7 +36,7 @@ create table
 
 COPY recommendations
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/recommendations.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/recommendations.csv' DELIMITER ',' CSV;
 
 create table
     transferred_points (
@@ -51,7 +51,7 @@ create table
 
 COPY transferred_points
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/transfered_points.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/transferred_points.csv' DELIMITER ',' CSV;
 
 create table
     time_tracking (
@@ -66,19 +66,18 @@ create table
 
 COPY time_tracking
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/time_tracking.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/time_tracking.csv' DELIMITER ',' CSV;
 
 create table
     tasks (
         title varchar primary key,
         parent_task varchar not null,
-        max_xp bigint not null,
-        constraint fk_title_parent_task foreign key(parent_task) references tasks(title)
+        max_xp bigint not null
     );
 
 COPY tasks
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/tasks.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/tasks.csv' DELIMITER ',' CSV;
 
 create table
     checks (
@@ -92,12 +91,12 @@ create table
 
 COPY checks
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/checks.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/checks.csv' DELIMITER ',' CSV;
 
 -- truncate checks cascade;
-drop table p2p cascade;
-drop table verter cascade;
-drop type state_type cascade;
+-- drop table p2p cascade;
+-- drop table verter cascade;
+-- drop type state_type cascade;
 
 create type state_type as enum ('Start', 'Success', 'Failure');
 create table
@@ -113,7 +112,7 @@ create table
 
 COPY p2p
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/p2p.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/p2p.csv' DELIMITER ',' CSV;
 
 create table
     verter (
@@ -126,7 +125,7 @@ create table
 
 COPY verter
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/verter.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/verter.csv' DELIMITER ',' CSV;
 
 create table
     xp (
@@ -138,4 +137,4 @@ create table
 
 COPY xp
 FROM
-    '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/xp.csv' DELIMITER ',' CSV;
+    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/xp.csv' DELIMITER ',' CSV;
