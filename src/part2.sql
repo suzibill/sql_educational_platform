@@ -51,7 +51,7 @@ begin
 end;
 $$ language 'plpgsql';
 
--- call insert_verter('Aboba', 'C3_s21_string', 'Success', '22:00:01');
+ call insert_verter('Aboba', 'C3_s21_string', 'Success', '22:00:01');
 --
 -- select check_
 -- from p2p
@@ -80,9 +80,45 @@ after insert on p2p
     for each row
     when (new.state_ = 'Start')
 execute procedure fnc_trg_transferred_points();
--- call insert_p2p('Aboba', 'Sus', 'C3_s21_string', 'Start');
---
--- select * from transferred_points
--- where checking_peer = 'Sus' and checked_peer = 'Aboba'
+call insert_p2p('Aboba', 'Sus', 'C3_s21_string', 'Start');
+
+select * from transferred_points
+where checking_peer = 'Sus' and checked_peer = 'Aboba';
 
 /* PART 4 */
+create trigger trg_xp
+before insert on xp
+for each row
+execute procedure fn_trg_xp();
+
+create or replace function fn_trg_xp()
+returns trigger as
+    $trg_xp$
+begin
+    if new.xp_amount > (select max_xp from tasks
+                                      join checks c on c.id = new.check_
+                                      where new.check_ = c.id
+                                      limit 1)
+    then
+        raise notice 'xp > max_xp';
+        return null;
+    end if;
+    if (select state_ from p2p where state_ = 'Success' and check_ = new.check_) is null
+    then
+        raise notice 'p2p stage not finished';
+        return null;
+    end if;
+    if (select state_ from verter where check_ = new.check_ limit 1) is not null
+           and (select state_ from verter where state_ = 'Success' and check_ = new.check_) is null
+    then
+        raise notice 'verter stage not finished';
+        return null;
+    end if;
+    return new;
+end;
+$trg_xp$ language 'plpgsql';
+
+insert into xp (id, check_, xp_amount) values ((select max(id) from xp) + 1, 23, 1500);
+
+select (select state_ from p2p where state_ = 'Success' and check_ = 22) is not null;
+select state_ from verter where state_ = 'Success' and check_ = 22;
