@@ -4,12 +4,6 @@ create table
         birthday date not null
     );
 
-COPY peers
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/peers.csv' DELIMITER ',' CSV;
-
--- \COPY peers FROM 'csv/peers.csv' DELIMITER ',' CSV;
-
 create table
     friends (
         id bigint primary key,
@@ -20,10 +14,6 @@ create table
         constraint check_peer_nick check(peer1 <> peer2)
     );
 
-COPY friends
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/friends.csv' DELIMITER ',' CSV;
-
 create table
     recommendations (
         id bigint primary key,
@@ -33,10 +23,6 @@ create table
         constraint fk_recommendations_recommended_peer foreign key (recommended_peer) references peers(nickname),
         constraint check_peer_recommended check(peer <> recommended_peer)
     );
-
-COPY recommendations
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/recommendations.csv' DELIMITER ',' CSV;
 
 create table
     transferred_points (
@@ -49,10 +35,6 @@ create table
         constraint check_peer_nick check(checking_peer <> checked_peer)
     );
 
-COPY transferred_points
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/transferred_points.csv' DELIMITER ',' CSV;
-
 create table
     time_tracking (
         id bigint primary key,
@@ -64,20 +46,13 @@ create table
         constraint fk_time_tracking_peer foreign key (peer) references peers(nickname)
     );
 
-COPY time_tracking
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/time_tracking.csv' DELIMITER ',' CSV;
-
 create table
     tasks (
         title varchar primary key,
         parent_task varchar not null,
-        max_xp bigint not null
+        max_xp bigint not null,
+        constraint fk_title_parent_task foreign key(parent_task) references tasks(title)
     );
-truncate checks cascade;
-COPY tasks
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/tasks.csv' DELIMITER ',' CSV;
 
 create table
     checks (
@@ -89,16 +64,8 @@ create table
         constraint fk_checks_task foreign key (task) references tasks(title)
     );
 
-COPY checks
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/checks.csv' DELIMITER ',' CSV;
-
--- truncate checks cascade;
--- drop table p2p cascade;
--- drop table verter cascade;
--- drop type state_type cascade;
-
 create type state_type as enum ('Start', 'Success', 'Failure');
+
 create table
     p2p (
         id bigint primary key,
@@ -110,10 +77,6 @@ create table
         constraint fk_p2p_checking_peer foreign key (checking_peer) references peers(nickname)
     );
 
-COPY p2p
-FROM
-    '/Users/gregory/SQL2_Info21_v1.0-0/src/csv/p2p.csv' DELIMITER ',' CSV;
-
 create table
     verter (
         id bigint primary key,
@@ -123,10 +86,6 @@ create table
         constraint fk_verter_check_ foreign key (check_) references checks(id)
     );
 
-COPY verter
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/verter.csv' DELIMITER ',' CSV;
-
 create table
     xp (
         id bigint primary key,
@@ -135,6 +94,38 @@ create table
         constraint fk_xp_check_ foreign key (check_) references checks(id)
     );
 
-COPY xp
-FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/xp.csv' DELIMITER ',' CSV;
+create or replace procedure import_from_csv() as
+$$
+    declare
+        import_path varchar = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/';
+--         import_path varchar = '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/';
+        import_name varchar[] = array ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
+        begin
+        for i in 1..array_length(import_name,1)
+        loop
+            execute format('COPY %s FROM ''%s%s.csv'' DELIMITER '','' CSV',import_name[i],import_path,import_name[i]);
+            end loop;
+    end;
+    $$
+    language plpgsql;
+
+-- truncate peers, friends, recommendations,transferred_points,time_tracking, tasks, checks,p2p, verter, xp cascade;
+call import_from_csv();
+
+create or replace procedure export_to_csv() as
+    $$
+    declare
+        export_path varchar = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/backup/';
+--         import_path varchar = '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/backup/';
+        export_name varchar[] = array ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
+        begin
+        for i in 1..array_length(export_name,1)
+        loop
+            execute format('COPY %s TO ''%s%s.csv'' WITH DELIMITER '','' CSV',export_name[i],export_path,export_name[i]);
+            end loop;
+    end;
+        $$
+language plpgsql;
+
+call export_to_csv();
+
