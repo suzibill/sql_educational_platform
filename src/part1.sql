@@ -74,7 +74,7 @@ create table
         parent_task varchar not null,
         max_xp bigint not null
     );
-
+truncate checks cascade;
 COPY tasks
 FROM
     '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/tasks.csv' DELIMITER ',' CSV;
@@ -112,7 +112,7 @@ create table
 
 COPY p2p
 FROM
-    '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/p2p.csv' DELIMITER ',' CSV;
+    '/Users/gregory/SQL2_Info21_v1.0-0/src/csv/p2p.csv' DELIMITER ',' CSV;
 
 create table
     verter (
