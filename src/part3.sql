@@ -632,6 +632,14 @@ with f as
         limit 1)
 select peer from f;
 
+/* ex25 */
+SELECT to_char(date_, 'Month') as Month,
+       COUNT(CASE WHEN time_ < '12:00:00' THEN 1 ELSE NULL END)::numeric/COUNT(*) * 100 AS EarlyEntries
+FROM (select peer, date_, time_ from time_tracking where state_ = '1') as a
+join peers p on p.nickname = a.peer
+GROUP BY Month, p.birthday, a.date_
+having extract(month from date_) = extract(month from p.birthday)
+;
  abort TRANSACTION;
 
 -- 9,11 не сделаны, 15- надо фиксить
