@@ -35,7 +35,7 @@ from checks
         )
         left join verter on verter.check_ = checks.id
         and (
-            verter.state_ = 'Success'  or verter.state_  = 'Failure'
+            verter.state_ = 'Success'  or verter.state_  = 'Failure' or verter.state_ = null
     );
 
 
@@ -252,7 +252,54 @@ begin;
     fetch all from "r_cur_part3_ex8";
 end;  
 
--- девятую сделать когда Боб напишет для нее цсв
+
+create or replace procedure prc_part3_ex09(
+    in branch varchar,
+    in res_checks refcursor = 'r_cur_part3_ex9'
+) as 
+$$
+declare
+branch_task_count int := (
+    select count(title)
+    from tasks
+    where title ~ ('^' || branch || '[0-9]')
+);
+begin 
+open res_checks for 
+with complete_tasks as (
+    select  
+        distinct on (checks.Peer,checks.task) checks.peer,
+        checks.task,
+        checks.date_
+    from checks 
+    inner join verter on verter.check_ = checks.id
+    inner join p2p on p2p.check_ = checks.id
+    where checks.task ~ ('^' || branch || '[0-9]') and 
+    p2p.state_ = 'Success' and (verter.state_ = 'Success' or verter.state_ = null)
+    order by checks.peer, checks.task, checks.date_ desc
+), count_uniq as (
+    select peer as Peer,
+           max(date_) as Day,
+           count (peer) as c_u
+    from complete_tasks
+    group by Peer
+)
+select count_uniq.Peer,
+       count_uniq.Day
+from count_uniq
+where c_u = branch_task_count
+order by count_uniq.Day desc;
+end;
+$$language plpgsql;
+
+begin;
+    call prc_part3_ex09('C');
+    fetch all from "r_cur_part3_ex9";
+end;  
+
+abort TRANSACTION
+
+
 
 create or replace view a_f as (
     select distinct on (a_f.peer1,a_f.peer2) *
@@ -335,7 +382,7 @@ declare
         left join verter on checks.id = verter.check_
         where to_char(checks.date_, 'MM.DD') = to_char(peers.birthday,'MM.DD')
             and (
-                p2p.state_ = 'Failure' or verter.state_ = 'Failure'
+                p2p.state_ = 'Failure' or verter.state_ = 'Failure' 
             )
     );
     success int :=(
@@ -352,6 +399,8 @@ declare
 
 begin
     open res_checks for select
+        success as success,
+        fail as failure,
         round((success/(success+fail))::numeric * 100, 0) as SuccessfulChecks,
         round((fail/(fail + success))::numeric * 100, 0) as UnsuccessfulChecks;
 end;
@@ -361,6 +410,16 @@ begin;
     call prc_part3_ex13();
     fetch all from "r_cur_part3_ex13";
 end;
+
+create or replace view max_task_for_peer as (
+select 
+    checks.peer as Peer,
+    task, 
+from xp
+left join checks on checks.id = xp.check_
+group by checks.task, checks.peer
+);
+
 
 create or replace view max_xp_for_task as (
 select 
@@ -517,14 +576,6 @@ begin;
     fetch all from "r_cur_part3_ex17";
 end;
 
-create or replace view max_task_for_peer as (
-select 
-    checks.peer as Peer,
-    task 
-from xp
-left join checks on checks.id = xp.check_
-group by checks.task, checks.peer
-);
 
 create or replace procedure prc_part3_ex18(
     in res_checks refcursor = 'r_cur_part3_ex18'
@@ -566,6 +617,8 @@ begin;
     fetch all from "r_cur_part3_ex19";
 end;
 
-abort TRANSACTION;
+
+
+ abort TRANSACTION;
 
 -- 9,11 не сделаны, 15- надо фиксить
