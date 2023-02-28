@@ -617,7 +617,20 @@ begin;
     fetch all from "r_cur_part3_ex19";
 end;
 
-
+/* ex20 */
+with f as
+    (with tt as (select peer, sum(time_) as t2
+    from time_tracking
+    where state_ = '2'
+    group by peer)
+        select t.peer, (t2 - sum(time_) ):: time as time
+        from time_tracking t
+        join tt on tt.peer = t.peer
+        where state_ = '1' and date_ = '2023-02-01'
+        group by t.peer, t2
+        order by time desc
+        limit 1)
+select peer from f;
 
  abort TRANSACTION;
 
