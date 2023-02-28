@@ -99,6 +99,7 @@ $$
     declare
         import_path varchar = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/';
 --         import_path varchar = '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/';
+--         import_path varchar = '/Users/casimira/SQL2_Info21_v1.0-0/src/csv/';
         import_name varchar[] = array ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
         begin
         for i in 1..array_length(import_name,1)
@@ -109,7 +110,6 @@ $$
     $$
     language plpgsql;
 
--- truncate peers, friends, recommendations,transferred_points,time_tracking, tasks, checks,p2p, verter, xp cascade;
 call import_from_csv();
 
 create or replace procedure export_to_csv() as
@@ -117,6 +117,7 @@ create or replace procedure export_to_csv() as
     declare
         export_path varchar = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/backup/';
 --         import_path varchar = '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/backup/';
+--         import_path varchar = '/Users/casimira/SQL2_Info21_v1.0-0/src/backup/';
         export_name varchar[] = array ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
         begin
         for i in 1..array_length(export_name,1)
@@ -128,4 +129,9 @@ create or replace procedure export_to_csv() as
 language plpgsql;
 
 call export_to_csv();
+
+-- truncate peers, friends, recommendations,transferred_points,time_tracking, tasks, checks,p2p, verter, xp cascade;
+-- SELECT count(*) FROM checks
+-- INNER JOIN (SELECT * FROM P2P WHERE state_ = 'Success') AS tmpp2p ON checks.id=tmpp2p.check_
+-- INNER JOIN (SELECT * FROM Verter WHERE state_ = 'Success' OR state_ is NULL) AS tmpverter ON checks.id= tmpverter.check_
 
