@@ -1,12 +1,12 @@
 1,Aboba,Amogus,1
-2,Aboba,Lastone,8
+2,Aboba,Lastone,9
 3,Aboba,Onemore,1
 4,Aboba,Sus,0
 5,Amogus,Aboba,1
 6,Amogus,Lastone,0
 7,Amogus,Onemore,1
-8,Amogus,Sus,0
-9,Lastone,Aboba,8
+8,Amogus,Sus,3
+9,Lastone,Aboba,9
 10,Lastone,Amogus,0
 11,Lastone,Onemore,1
 12,Lastone,Sus,3
@@ -15,6 +15,6 @@
 15,Onemore,Lastone,0
 16,Onemore,Sus,1
 17,Sus,Aboba,0
-18,Sus,Amogus,1
+18,Sus,Amogus,4
 19,Sus,Lastone,1
 20,Sus,Onemore,1
