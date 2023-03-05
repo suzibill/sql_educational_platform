@@ -78,7 +78,7 @@ $$ language plpgsql;
 
 select * from fnc_part3_ex03('2023-02-01');
 
-/* ex04 */
+/* ex04 */    
 create or replace procedure prc_part3_ex04(
     in res_checks refcursor = 'r_cur_part3_ex4'
 ) as
@@ -99,8 +99,8 @@ s_count integer= all_count - f_count;
 
 begin
     open res_checks for select
-        round((f_count/all_count)::numeric * 100, 0) as UnsuccessfulChecks,
-        round((s_count/all_count)::numeric * 100, 0) as SuccessfulChecks;
+        round((f_count * 100/all_count)::numeric, 0) as UnsuccessfulChecks,
+        round((s_count * 100/all_count)::numeric , 0) as SuccessfulChecks;
 end;
 $$ language plpgsql;
 
@@ -302,10 +302,6 @@ begin;
     fetch all from "r_cur_part3_ex9";
 end;  
 
-abort TRANSACTION
-
-
-
 create or replace view a_f as (
     select distinct on (a_f.peer1,a_f.peer2) *
     from (
@@ -351,8 +347,62 @@ begin;
     fetch all from "r_cur_part3_ex10";
 end;  
 
--- 11 нужна норм таблица
+/* ex11 */
+create or replace procedure prc_part3_task11 (
+   ref refcursor,
+   in block_one varchar,
+   in block_two varchar
+ )as 
+$$
+ declare count_peers int := (
+    select count(*)
+    from peers
+ );
+begin open ref for 
+with t_b1 as (
+    select checks.peer as ch1
+    from checks 
+    where checks.task ~  ('^' || block_one || '[0-9]')
+    group by ch1
+), t_b2 as (
+    select checks.peer as ch2
+    from checks 
+    where checks.task ~  ('^' || block_two || '[0-9]')
+    group by ch2
+), t_b_all as (
+    select * from t_b1
+    intersect 
+    select * from t_b2
+),t_b_not_started as (
+    select nickname from peers
+    except 
+    (select * from t_b1
+    union 
+    select * from t_b2)
+)
+select round(
+            ((select count(*) * 100
+            from t_b1)/count_peers) - (select count(*)* 100
+            from t_b_all)/count_peers, 0) as StartedBlock1,
+        round(
+            ((select count(*)* 100
+            from t_b2)/count_peers) - (select count(*)* 100
+            from t_b_all)/count_peers , 0) as StartedBlock2,
+        round(
+            ((select count(*)* 100
+            from t_b_all)/count_peers), 0) as StartedBothBlocks,
+        round(
+            ((select count(*) * 100
+            from t_b_not_started)/count_peers), 0) as DidntStartAnyBlock;
+end;
+$$ language plpgsql;
 
+begin;
+    call prc_part3_task11('r_cur_part3_ex11','C','DO');
+    fetch all in r_cur_part3_ex11;
+end;  
+
+/* ex12 */
 create or replace procedure prc_part3_ex12 (ref refcursor, counts int default 1) as
 $$
 begin 
@@ -373,7 +423,6 @@ begin;
     call prc_part3_ex12('r_cur_part3_ex12',4);
     fetch all in r_cur_part3_ex12;
 end;  
--- поменять имя процедуры, у меня задвоило
 
 /* ex13 */
 create or replace procedure prc_part3_ex13(
@@ -406,10 +455,8 @@ declare
 
 begin
     open res_checks for select
-        success as success,
-        fail as failure,
-        round((success/(success+fail))::numeric * 100, 0) as SuccessfulChecks,
-        round((fail/(fail + success))::numeric * 100, 0) as UnsuccessfulChecks;
+        round((success * 100/(success+fail))::numeric , 0) as SuccessfulChecks,
+        round((fail * 100/(fail + success))::numeric , 0) as UnsuccessfulChecks;
 end;
 $$ language plpgsql;   
 
@@ -426,7 +473,6 @@ from xp
 left join checks on checks.id = xp.check_
 group by checks.task, checks.peer
 );
-
 
 create or replace view max_xp_for_task as (
 select 
@@ -457,54 +503,48 @@ begin;
     fetch all from "r_cur_part3_ex14";
 end;
 
+/* ex15 */
+create or replace procedure prc_part3_ex15(
+    in task1 varchar, 
+    in task2 varchar,
+    in task3 varchar,
+    in res_checks refcursor = 'r_cur_part3_ex15'
+) as
+$$
+begin
+open res_checks for 
+with t1 as (
+    select 
+        checks.peer
+    from xp
+    left join checks on xp.check_ = checks.id
+    where 
+        checks.task = task1 or checks.task = task2
+    group by peer 
+    having count(checks.task) =2
+), t2 as (
+    select distinct checks.peer
+    from xp
+    left join checks on xp.check_ = checks.id
+    where 
+        checks.task = task3   
+)
+select peer
+from t1 
+except 
+select peer
+from t2;
+end;
+$$ language plpgsql;
 
--- create or replace procedure prc_part3_ex15(
---     in task1 varchar, 
---     in task2 varchar,
---     in task3 varchar,
---     in res_checks refcursor = 'r_cur_part3_ex15'
--- ) as
--- $$
--- begin
--- open res_checks for 
--- with t1 as (
---     select 
---         checks.peer
---     from checks
---     left join p2p on p2p.check_ = checks.id
---     left join verter on verter.check_ = checks.id
---     where 
---         p2p.state_ = 'Success' and 
---         (verter.state_ = 'Success' or verter.state_ = null) and 
---         (checks.task = task1 or checks.task = task2)
---     group by peer 
---     having count(checks.task) =2
--- ), t2 as (
---     select distinct checks.peer
---     from checks
---      eft join p2p on p2p.check_ = checks.id
---     left join verter on verter.check_ = checks.id
---     where 
---         p2p.state_ = 'Failure' or 
---         (verter.state_ = 'Failure' or verter.state_ = null)
---         and checks.task = task3    
--- )
--- select peer
--- from t1 
--- except 
--- select peer
--- from t2;
--- end;
--- $$ language plpgsql;
-
--- begin;
---     call prc_part3_ex15(
---         'SimpleBashUtils',
---         's21_string',
---         's21_math.h'
---     );
---     fetch all from "r_cur_part3_ex15";
--- end;
+begin;
+    call prc_part3_ex15(
+        'C2_SimpleBashUtils',
+        'C3_s21_string',
+        'CPP6_3DViewer_v2_2'
+    );
+    fetch all from "r_cur_part3_ex15";
+end;
 
 /* ex16 */
 create or replace procedure prc_part3_ex16 (
@@ -815,5 +855,3 @@ begin;
 call prc_part3_ex25();
 fetch all from "r_cur_part3_ex25";
 end;
-
--- 9,11 не сделаны, 15- надо фиксить
