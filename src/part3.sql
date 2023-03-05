@@ -617,7 +617,12 @@ begin;
     fetch all from "r_cur_part3_ex19";
 end;
 
-/* ex20 */
+/* ex20 */ -- target date hardcoded
+create or replace procedure prc_part3_ex20(
+ in res_checks refcursor = 'r_cur_part3_ex20'
+) as $$
+begin
+open res_checks for
 with f as
     (with tt as (select peer, sum(time_) as t2
     from time_tracking
@@ -631,15 +636,39 @@ with f as
         order by time desc
         limit 1)
 select peer from f;
+end;
+$$ language plpgsql;
+
+begin;
+call prc_part3_ex20();
+fetch all from "r_cur_part3_ex20";
+end;
 
 /* ex25 */
-SELECT to_char(date_, 'Month') as Month,
-       COUNT(CASE WHEN time_ < '12:00:00' THEN 1 ELSE NULL END)::numeric/COUNT(*) * 100 AS EarlyEntries
-FROM (select peer, date_, time_ from time_tracking where state_ = '1') as a
-join peers p on p.nickname = a.peer
-GROUP BY Month, p.birthday, a.date_
-having extract(month from date_) = extract(month from p.birthday)
+create or replace procedure prc_part3_ex25(
+in res_checks refcursor = 'r_cur_part3_ex25'
+) as
+$$
+begin
+open res_checks for
+    select Month, round(sum(earlyentries) * 100/ sum(totalentries)) Early_Entries
+        from
+    (SELECT peer,
+            to_char(a.date_, 'Month') as Month,
+            COUNT(*)                                                   AS TotalEntries,
+            COUNT(CASE WHEN a.time_ < '12:00:00' THEN 1 ELSE NULL END) AS EarlyEntries
+     FROM (select peer, date_, time_ from time_tracking where state_ = '1') a
+              join peers p on p.nickname = a.peer
+     GROUP BY peer, Month, p.birthday, a.date_
+     having extract(month from a.date_) = extract(month from p.birthday)) b
+group by b.Month
 ;
- abort TRANSACTION;
+end;
+$$ language plpgsql;
+
+begin;
+call prc_part3_ex25();
+fetch all from "r_cur_part3_ex25";
+end;
 
 -- 9,11 не сделаны, 15- надо фиксить
