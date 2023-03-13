@@ -718,13 +718,20 @@ ABORT TRANSACTION;
 
 /* ex24 */ -- Определить пиров, которые выходили вчера из кампуса больше чем на N минут
 CREATE OR REPLACE PROCEDURE prc_part3_ex24(
-    IN time_out_of_campus time,
+    IN int_time_out_m INTEGER,
     IN res_check REFCURSOR = 'r_cur_part3_ex24'
 ) AS
 $$
 DECLARE
-    yesterday_date_ date := '2023-04-20';
+    yesterday_date_ date := current_date - 1;
+    int_time_out_h integer := 0;
+    time_out_of_campus time;
 BEGIN
+    if int_time_out_m > 59 then
+        int_time_out_h := int_time_out_m/60;
+        int_time_out_m := int_time_out_m - int_time_out_h * 60;
+    end if;
+    time_out_of_campus = make_time(int_time_out_h,int_time_out_m,0);
     OPEN res_check FOR
         WITH in_campus AS (SELECT t_t.peer,
                                   t_t.time_,
@@ -757,12 +764,12 @@ BEGIN
                                      INNER JOIN in_campus i_c ON i_c.peer = o_c.peer)
         SELECT DISTINCT peer
         FROM peers_outs
-        WHERE max_time_out > time_out_of_campus;
+        WHERE max_time_out >= time_out_of_campus;
 END;
 $$ LANGUAGE plpgsql;
 
 BEGIN;
-CALL prc_part3_ex24('00:01:00');
+CALL prc_part3_ex24(66);
 FETCH ALL FROM "r_cur_part3_ex24";
 END;
 

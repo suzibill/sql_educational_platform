@@ -107,7 +107,7 @@ CREATE TABLE
 CREATE OR REPLACE PROCEDURE import_FROM_csv() AS
 $$
 DECLARE
-    import_path varchar   = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/';
+    import_path varchar   = '/Users/casimira/SQL2_Info21_v1.0-0/src/csv/';
     import_name varchar[] = ARRAY ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
 BEGIN
     FOR i IN 1..array_length(import_name, 1)
@@ -137,3 +137,4 @@ $$
     LANGUAGE plpgsql;
 
 CALL export_to_csv();
+
