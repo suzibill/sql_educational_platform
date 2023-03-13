@@ -1,137 +1,139 @@
-create table
-    peers (
-        nickname varchar primary key,
-        birthday date not null
-    );
+CREATE TABLE
+    peers
+(
+    nickname varchar PRIMARY KEY,
+    birthday date NOT NULL
+);
 
-create table
-    friends (
-        id bigint primary key,
-        peer1 varchar not null,
-        peer2 varchar not null,
-        constraint fk_friends_peer1 foreign key (peer1) references peers(nickname),
-        constraint fk_friends_peer2 foreign key (peer2) references peers(nickname),
-        constraint check_peer_nick check(peer1 <> peer2)
-    );
+CREATE TABLE
+    friends
+(
+    id    bigint PRIMARY KEY,
+    peer1 varchar NOT NULL,
+    peer2 varchar NOT NULL,
+    CONSTRAINT fk_friends_peer1 FOREIGN KEY (peer1) REFERENCES peers (nickname),
+    CONSTRAINT fk_friends_peer2 FOREIGN KEY (peer2) REFERENCES peers (nickname),
+    CONSTRAINT check_peer_nick CHECK (peer1 <> peer2)
+);
 
-create table
-    recommendations (
-        id bigint primary key,
-        peer varchar not null,
-        recommended_peer varchar not null,
-        constraint fk_recommendations_peer foreign key (peer) references peers(nickname),
-        constraint fk_recommendations_recommended_peer foreign key (recommended_peer) references peers(nickname),
-        constraint check_peer_recommended check(peer <> recommended_peer)
-    );
+CREATE TABLE
+    recommendations
+(
+    id               bigint PRIMARY KEY,
+    peer             varchar NOT NULL,
+    recommended_peer varchar NOT NULL,
+    CONSTRAINT fk_recommendations_peer FOREIGN KEY (peer) REFERENCES peers (nickname),
+    CONSTRAINT fk_recommendations_recommended_peer FOREIGN KEY (recommended_peer) REFERENCES peers (nickname),
+    CONSTRAINT check_peer_recommended CHECK (peer <> recommended_peer)
+);
 
-create table
-    transferred_points (
-        id bigint primary key,
-        checking_peer varchar not null,
-        checked_peer varchar not null,
-        point_amount int not null,
-        constraint fk_friends_checking_peer foreign key (checking_peer) references peers(nickname),
-        constraint fk_friends_checked_peer foreign key (checked_peer) references peers(nickname),
-        constraint check_peer_nick check(checking_peer <> checked_peer)
-    );
+CREATE TABLE
+    transferred_points
+(
+    id            bigint PRIMARY KEY,
+    checking_peer varchar NOT NULL,
+    checked_peer  varchar NOT NULL,
+    point_amount  int     NOT NULL,
+    CONSTRAINT fk_friends_checking_peer FOREIGN KEY (checking_peer) REFERENCES peers (nickname),
+    CONSTRAINT fk_friends_checked_peer FOREIGN KEY (checked_peer) REFERENCES peers (nickname),
+    CONSTRAINT check_peer_nick CHECK (checking_peer <> checked_peer)
+);
 
-create table
-    time_tracking (
-        id bigint primary key,
-        peer varchar not null,
-        date_ date not null,
-        time_ time not null,
-        state_ integer not null,
-        constraint check_time_tracking_state check (state_ in ('1', '2')),
-        constraint fk_time_tracking_peer foreign key (peer) references peers(nickname)
-    );
+CREATE TABLE
+    time_tracking
+(
+    id     bigint PRIMARY KEY,
+    peer   varchar NOT NULL,
+    date_  date    NOT NULL,
+    time_  time    NOT NULL,
+    state_ integer NOT NULL,
+    CONSTRAINT check_time_tracking_state CHECK (state_ IN ('1', '2')),
+    CONSTRAINT fk_time_tracking_peer FOREIGN KEY (peer) REFERENCES peers (nickname)
+);
 
-create table
-    tasks (
-        title varchar primary key,
-        parent_task varchar not null,
-        max_xp bigint not null,
-        constraint fk_title_parent_task foreign key(parent_task) references tasks(title)
-    );
+CREATE TABLE
+    tasks
+(
+    title       varchar PRIMARY KEY,
+    parent_task varchar NOT NULL,
+    max_xp      bigint  NOT NULL,
+    CONSTRAINT fk_title_parent_task FOREIGN KEY (parent_task) REFERENCES tasks (title)
+);
 
-create table
-    checks (
-        id bigint primary key,
-        peer varchar not null,
-        task varchar not null,
-        date_ date not null,
-        constraint fk_checks_peer foreign key (peer) references peers(nickname),
-        constraint fk_checks_task foreign key (task) references tasks(title)
-    );
+CREATE TABLE
+    checks
+(
+    id    bigint PRIMARY KEY,
+    peer  varchar NOT NULL,
+    task  varchar NOT NULL,
+    date_ date    NOT NULL,
+    CONSTRAINT fk_checks_peer FOREIGN KEY (peer) REFERENCES peers (nickname),
+    CONSTRAINT fk_checks_task FOREIGN KEY (task) REFERENCES tasks (title)
+);
 
-create type state_type as enum ('Start', 'Success', 'Failure');
+CREATE type state_type AS ENUM ('Start', 'Success', 'Failure');
 
-create table
-    p2p (
-        id bigint primary key,
-        check_ bigint not null,
-        checking_peer varchar not null,
-        state_ state_type not null,
-        time_ time not null,
-        constraint fk_p2p_check_ foreign key (check_) references checks(id),
-        constraint fk_p2p_checking_peer foreign key (checking_peer) references peers(nickname)
-    );
+CREATE TABLE
+    p2p
+(
+    id            bigint PRIMARY KEY,
+    check_        bigint     NOT NULL,
+    checking_peer varchar    NOT NULL,
+    state_        state_type NOT NULL,
+    time_         time       NOT NULL,
+    CONSTRAINT fk_p2p_check_ FOREIGN KEY (check_) REFERENCES checks (id),
+    CONSTRAINT fk_p2p_checking_peer FOREIGN KEY (checking_peer) REFERENCES peers (nickname)
+);
 
-create table
-    verter (
-        id bigint primary key,
-        check_ bigint not null,
-        state_ state_type not null,
-        time_ time not null,
-        constraint fk_verter_check_ foreign key (check_) references checks(id)
-    );
+CREATE TABLE
+    verter
+(
+    id     bigint PRIMARY KEY,
+    check_ bigint     NOT NULL,
+    state_ state_type NOT NULL,
+    time_  time       NOT NULL,
+    CONSTRAINT fk_verter_check_ FOREIGN KEY (check_) REFERENCES checks (id)
+);
 
-create table
-    xp (
-        id bigint primary key,
-        check_ bigint not null,
-        xp_amount bigint not null,
-        constraint fk_xp_check_ foreign key (check_) references checks(id)
-    );
+CREATE TABLE
+    xp
+(
+    id        bigint PRIMARY KEY,
+    check_    bigint NOT NULL,
+    xp_amount bigint NOT NULL,
+    CONSTRAINT fk_xp_check_ FOREIGN KEY (check_) REFERENCES checks (id)
+);
 
-create or replace procedure import_from_csv() as
+CREATE OR REPLACE PROCEDURE import_FROM_csv() AS
 $$
-    declare
-        import_path varchar = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/';
---         import_path varchar = '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/csv/';
---         import_path varchar = '/Users/casimira/SQL2_Info21_v1.0-0/src/csv/';
-        import_name varchar[] = array ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
-        begin
-        for i in 1..array_length(import_name,1)
-        loop
-            execute format('COPY %s FROM ''%s%s.csv'' DELIMITER '','' CSV',import_name[i],import_path,import_name[i]);
-            end loop;
-    end;
-    $$
-    language plpgsql;
+DECLARE
+    import_path varchar   = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/csv/';
+    import_name varchar[] = ARRAY ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
+BEGIN
+    FOR i IN 1..array_length(import_name, 1)
+        LOOP
+            EXECUTE FORmat('COPY %s FROM ''%s%s.csv'' DELIMITER '','' CSV', import_name[i], import_path,
+                           import_name[i]);
+        END LOOP;
+END;
+$$
+    LANGUAGE plpgsql;
 
-call import_from_csv();
+CALL import_FROM_csv();
 
-create or replace procedure export_to_csv() as
-    $$
-    declare
-        export_path varchar = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/backup/';
---         import_path varchar = '/Users/suzibill/projects/SQL2_Info21_v1.0-0/src/backup/';
---         import_path varchar = '/Users/casimira/SQL2_Info21_v1.0-0/src/backup/';
-        export_name varchar[] = array ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
-        begin
-        for i in 1..array_length(export_name,1)
-        loop
-            execute format('COPY %s TO ''%s%s.csv'' WITH DELIMITER '','' CSV',export_name[i],export_path,export_name[i]);
-            end loop;
-    end;
-        $$
-language plpgsql;
+CREATE OR REPLACE PROCEDURE export_to_csv() AS
+$$
+DECLARE
+    export_path varchar   = '/Users/wilfredo/02/SQL2_Info21_v1.0-0/src/backup/';
+    export_name varchar[] = ARRAY ['peers', 'friends', 'recommendations','transferred_points','time_tracking', 'tasks', 'checks','p2p', 'verter', 'xp'];
+BEGIN
+    FOR i IN 1..array_length(export_name, 1)
+        LOOP
+            EXECUTE FORmat('COPY %s TO ''%s%s.csv'' WITH DELIMITER '','' CSV', export_name[i], export_path,
+                           export_name[i]);
+        END LOOP;
+END;
+$$
+    LANGUAGE plpgsql;
 
-call export_to_csv();
-
--- truncate peers, friends, recommendations,transferred_points,time_tracking, tasks, checks,p2p, verter, xp cascade;
--- SELECT count(*) FROM checks
--- INNER JOIN (SELECT * FROM P2P WHERE state_ = 'Success') AS tmpp2p ON checks.id=tmpp2p.check_
--- INNER JOIN (SELECT * FROM Verter WHERE state_ = 'Success' OR state_ is NULL) AS tmpverter ON checks.id= tmpverter.check_
-
+CALL export_to_csv();
