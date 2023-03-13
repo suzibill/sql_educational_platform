@@ -1,4 +1,4 @@
-/* ex01 */
+/* ex01 */ -- Написать функцию, возвращающую таблицу TransferredPoints в более человекочитаемом виде
 CREATE OR REPLACE FUNCTION fnc_part3_ex01()
     RETURNS TABLE
             (
@@ -35,7 +35,7 @@ FROM checks
          LEFT JOIN verter ON verter.check_ = checks.id
     AND (verter.state_ = 'Success' OR verter.state_ = 'Failure' OR verter.state_ = NULL);
 
-/* ex02 */
+/* ex02 */ -- Написать функцию, которая возвращает таблицу вида: ник пользователя, название проверенного задания, кол-во полученного XP
 CREATE OR REPLACE FUNCTION fnc_part3_ex02()
     RETURNS TABLE
             (
@@ -59,7 +59,7 @@ $$ LANGUAGE plpgsql;
 
 SELECT * FROM fnc_part3_ex02();
 
-/* ex03 */
+/* ex03 */ -- Написать функцию, определяющую пиров, которые не выходили из кампуса в течение всего дня
 CREATE OR REPLACE FUNCTION fnc_part3_ex03(pdate date)
     RETURNS TABLE
             (
@@ -80,7 +80,7 @@ $$ LANGUAGE plpgsql;
 
 SELECT * FROM fnc_part3_ex03('2023-02-01');
 
-/* ex04 */
+/* ex04 */ -- Найти процент успешных и неуспешных проверок за всё время
 CREATE OR REPLACE PROCEDURE prc_part3_ex04(
     IN res_checks REFCURSOR = 'r_cur_part3_ex4'
 ) AS
@@ -105,7 +105,7 @@ CALL prc_part3_ex04();
 FETCH ALL FROM "r_cur_part3_ex4";
 END;
 
-/* ex05 */
+/* ex05 */ -- Посчитать изменение в количестве пир поинтов каждого пира по таблице TransferredPoints
 CREATE OR REPLACE PROCEDURE prc_part3_ex05(
     IN res_checks REFCURSOR = 'r_cur_part3_ex5'
 ) AS
@@ -130,7 +130,7 @@ CALL prc_part3_ex05();
 FETCH ALL FROM "r_cur_part3_ex5";
 END;
 
-/* ex06 */
+/* ex06 */ -- Посчитать изменение в количестве пир поинтов каждого пира по таблице, возвращаемой ex01
 CREATE OR REPLACE PROCEDURE prc_part3_ex06(
     IN res_checks REFCURSOR = 'r_cur_part3_ex6'
 ) AS
@@ -171,7 +171,7 @@ SELECT COUNT_c.date_,
 FROM COUNT_c
 GROUP BY COUNT_c.date_;
 
-/* ex07 */
+/* ex07 */ -- Определить самое часто проверяемое задание за каждый день
 CREATE OR REPLACE PROCEDURE prc_part3_ex07(
     IN res_checks REFCURSOR = 'r_cur_part3_ex7'
 ) AS
@@ -191,7 +191,7 @@ CALL prc_part3_ex07();
 FETCH ALL FROM "r_cur_part3_ex7";
 END;
 
-/* ex08 */
+/* ex08 */ -- Определить длительность последней P2P проверки
 CREATE OR REPLACE PROCEDURE prc_part3_ex08(
     IN res_checks REFCURSOR = 'r_cur_part3_ex8'
 ) AS
@@ -208,13 +208,13 @@ DECLARE
                                FROM p2p
                                WHERE check_ = number_of_check
                                  AND state_ = 'Start');
-    END_check       time   := (SELECT time_
+    end_check       time   := (SELECT time_
                                FROM p2p
                                WHERE check_ = number_of_check
                                  AND (state_ = 'Success' OR state_ = 'Failure'));
 BEGIN
     OPEN res_checks FOR
-        SELECT END_check - start_check AS time_to_check;
+        SELECT end_check - start_check AS time_to_check;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -223,7 +223,7 @@ CALL prc_part3_ex08();
 FETCH ALL FROM "r_cur_part3_ex8";
 END;
 
-/* ex09 */
+/* ex09 */ -- Найти всех пиров, выполнивших весь заданный блок задач и дату завершения последнего задания
 CREATE OR REPLACE PROCEDURE prc_part3_ex09(
     IN branch varchar,
     IN res_checks REFCURSOR = 'r_cur_part3_ex9'
@@ -285,7 +285,7 @@ GROUP BY a_f.peer1, recommendations.recommended_peer
 ORDER BY peer1
     );
 
-/* ex10 */
+/* ex10 */ -- Определить, к какому пиру стоит идти на проверку каждому обучающемуся
 CREATE OR REPLACE PROCEDURE prc_part3_ex10(
     IN res_checks REFCURSOR = 'r_cur_part3_ex10'
 ) AS
@@ -303,7 +303,7 @@ CALL prc_part3_ex10();
 FETCH ALL FROM "r_cur_part3_ex10";
 END;
 
-/* ex11 */
+/* ex11 */ -- Определить процент пиров, которые приступили только к блоку 1, только к блоку 2, к обоим, ни к одному
 CREATE OR REPLACE PROCEDURE prc_part3_task11(
     ref REFCURSOR,
     IN block_one varchar,
@@ -311,7 +311,7 @@ CREATE OR REPLACE PROCEDURE prc_part3_task11(
 ) as
 $$
 DECLARE
-    COUNT_peers int := (SELECT COUNT(*)
+    count_peers int := (SELECT COUNT(*)
                         FROM peers);
 BEGIN
     OPEN ref FOR
@@ -338,18 +338,18 @@ BEGIN
                                   FROM t_b2))
         SELECT ROUND(
                            ((SELECT COUNT(*) * 100
-                             FROM t_b1) / COUNT_peers) - (SELECT COUNT(*) * 100
-                                                          FROM t_b_all) / COUNT_peers, 0) AS StartedBlock1,
+                             FROM t_b1) / count_peers) - (SELECT COUNT(*) * 100
+                                                          FROM t_b_all) / count_peers, 0) AS StartedBlock1,
                ROUND(
                            ((SELECT COUNT(*) * 100
-                             FROM t_b2) / COUNT_peers) - (SELECT COUNT(*) * 100
-                                                          FROM t_b_all) / COUNT_peers, 0) AS StartedBlock2,
+                             FROM t_b2) / count_peers) - (SELECT COUNT(*) * 100
+                                                          FROM t_b_all) / count_peers, 0) AS StartedBlock2,
                ROUND(
                        ((SELECT COUNT(*) * 100
-                         FROM t_b_all) / COUNT_peers), 0)                                 AS StartedBothBlocks,
+                         FROM t_b_all) / count_peers), 0)                                 AS StartedBothBlocks,
                ROUND(
                        ((SELECT COUNT(*) * 100
-                         FROM t_b_not_started) / COUNT_peers), 0)                         AS DidntStartAnyBlock;
+                         FROM t_b_not_started) / count_peers), 0)                         AS DidntStartAnyBlock;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -358,18 +358,18 @@ CALL prc_part3_task11('r_cur_part3_ex11', 'C', 'DO');
 FETCH ALL IN r_cur_part3_ex11;
 END;
 
-/* ex12 */
-CREATE OR REPLACE PROCEDURE prc_part3_ex12(ref REFCURSOR, COUNTs int DEFAULT 1) AS
+/* ex12 */ -- Определить N пиров с наибольшим числом друзей
+CREATE OR REPLACE PROCEDURE prc_part3_ex12(ref REFCURSOR, counts int DEFAULT 1) AS
 $$
 BEGIN
     OPEN ref FOR
         SELECT peers.nickname   AS Peer,
-               COUNT(a_f.peer2) AS friendsCOUNT
+               COUNT(a_f.peer2) AS friendscount
         FROM peers
                  LEFT JOIN a_f ON a_f.peer1 = peers.nickname
         GROUP BY peers.nickname
-        ORDER BY friendsCOUNT DESC
-        LIMIT COUNTs;
+        ORDER BY friendscount DESC
+        LIMIT counts;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -378,7 +378,7 @@ CALL prc_part3_ex12('r_cur_part3_ex12', 4);
 FETCH ALL IN r_cur_part3_ex12;
 END;
 
-/* ex13 */
+/* ex13 */ -- Определить процент пиров, которые когда-либо успешно проходили проверку в свой день рождения
 CREATE OR REPLACE PROCEDURE prc_part3_ex13(
     IN res_checks REFCURSOR = 'r_cur_part3_ex13'
 ) AS
@@ -432,7 +432,7 @@ FROM xp
 GROUP BY checks.task, checks.peer
     );
 
-/* ex14 */
+/* ex14 */ -- Определить кол-во XP, полученное в сумме каждым пиром
 CREATE OR REPLACE PROCEDURE prc_part3_ex14(
     IN res_checks REFCURSOR = 'r_cur_part3_ex14'
 ) AS
@@ -451,7 +451,7 @@ CALL prc_part3_ex14();
 FETCH ALL FROM "r_cur_part3_ex14";
 END;
 
-/* ex15 */
+/* ex15 */ -- Определить всех пиров, которые сдали заданные задания 1 и 2, но не сдали задание 3
 CREATE OR REPLACE PROCEDURE prc_part3_ex15(
     IN task1 varchar,
     IN task2 varchar,
@@ -489,21 +489,21 @@ CALL prc_part3_ex15(
 FETCH ALL FROM "r_cur_part3_ex15";
 END;
 
-/* ex16 */
+/* ex16 */ -- Используя рекурсивное обобщенное табличное выражение, для каждой задачи вывести кол-во предшествующих ей задач
 CREATE OR REPLACE PROCEDURE prc_part3_ex16(
     IN res_checks REFCURSOR = 'r_cur_part3_ex16'
 ) AS
 $$
 BEGIN
     OPEN res_checks FOR
-        WITH RECURSIVE COUNT_task_prev AS
-                           ((SELECT tasks.title, 0 AS prev_COUNT FROM tasks WHERE parent_task = 'None')
+        WITH RECURSIVE count_task_prev AS
+                           ((SELECT tasks.title, 0 AS prev_count FROM tasks WHERE parent_task = 'None')
                             UNION ALL
-                            (SELECT tasks.title, prev_COUNT + 1
+                            (SELECT tasks.title, prev_count + 1
                              FROM tasks
-                                      INNER JOIN COUNT_task_prev ON COUNT_task_prev.title = tasks.parent_task))
+                                      INNER JOIN count_task_prev ON count_task_prev.title = tasks.parent_task))
         SELECT *
-        FROM COUNT_task_prev;
+        FROM count_task_prev;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -534,7 +534,7 @@ FROM checks
          JOIN tasks ON tasks.title = checks.task
     );
 
-/* ex17 */
+/* ex17 */ -- Найти "удачные" для проверок дни. День считается "удачным", если в нем есть хотя бы N идущих подряд успешных проверки
 CREATE OR REPLACE PROCEDURE prc_part3_ex17(
     IN numb int,
     IN res_checks REFCURSOR = 'r_cur_part3_ex17'
@@ -564,7 +564,7 @@ CALL prc_part3_ex17(1);
 FETCH ALL FROM "r_cur_part3_ex17";
 END;
 
-/* ex18 */
+/* ex18 */ -- Определить пира с наибольшим числом выполненных заданий
 CREATE OR REPLACE PROCEDURE prc_part3_ex18(
     IN res_checks REFCURSOR = 'r_cur_part3_ex18'
 ) AS
@@ -585,7 +585,7 @@ CALL prc_part3_ex18();
 FETCH ALL FROM "r_cur_part3_ex18";
 END;
 
-/* ex19 */
+/* ex19 */ -- Определить пира с наибольшим количеством XP
 CREATE OR REPLACE PROCEDURE prc_part3_ex19(
     IN res_checks REFCURSOR = 'r_cur_part3_ex19'
 ) AS
@@ -606,7 +606,7 @@ CALL prc_part3_ex19();
 FETCH ALL FROM "r_cur_part3_ex19";
 END;
 
-/* ex20 */
+/* ex20 */ -- Определить пира, который провел сегодня в кампусе больше всего времени
 CREATE OR REPLACE PROCEDURE prc_part3_ex20(
     IN res_checks REFCURSOR = 'r_cur_part3_ex20'
 ) AS
@@ -636,7 +636,7 @@ CALL prc_part3_ex20();
 FETCH ALL FROM "r_cur_part3_ex20";
 END;
 
-/* ex21 */
+/* ex21 */ -- Определить пиров, приходивших раньше заданного времени не менее N раз за всё время
 CREATE OR REPLACE PROCEDURE prc_part3_ex21(
     IN n_COUNT integer,
     IN timing_ time,
@@ -663,10 +663,10 @@ CALL prc_part3_ex21(2, '12:15:18');
 FETCH ALL FROM "r_cur_part3_ex21";
 END;
 
-/* ex22 */
+/* ex22 */ -- Определить пиров, выходивших за последние N дней из кампуса больше M раз
 CREATE OR REPLACE PROCEDURE prc_part3_ex22(
-    IN m_COUNT integer,
-    IN n_COUNT integer,
+    IN m_count integer,
+    IN n_count integer,
     IN res_checks REFCURSOR = 'r_cur_part3_ex22'
 ) AS
 $$
@@ -675,13 +675,13 @@ BEGIN
         SELECT peer
         FROM time_tracking tt
         WHERE tt.state_ = 2
-          AND (current_date - tt.date_) <= n_COUNT
+          AND (current_date - tt.date_) <= n_count
           AND NOT tt.time_ = (SELECT MAX(tt2.time_)
                               FROM time_tracking tt2
                               WHERE tt2.date_ = tt.date_
                                 AND tt2.peer = tt.peer)
         GROUP BY peer
-        HAVING (COUNT(peer)) > m_COUNT;
+        HAVING (COUNT(peer)) > m_count;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -690,7 +690,7 @@ CALL prc_part3_ex22(1, 50);
 FETCH ALL FROM "r_cur_part3_ex22";
 END;
 
-/* ex23 */
+/* ex23 */ -- Определить пира, который пришел сегодня последним
 CREATE OR REPLACE PROCEDURE prc_part3_ex23(
     IN res_check REFCURSOR = 'r_cur_part3_ex23'
 ) AS
@@ -716,7 +716,7 @@ END;
 
 ABORT TRANSACTION;
 
-/* ex24 */
+/* ex24 */ -- Определить пиров, которые выходили вчера из кампуса больше чем на N минут
 CREATE OR REPLACE PROCEDURE prc_part3_ex24(
     IN time_out_of_campus time,
     IN res_check REFCURSOR = 'r_cur_part3_ex24'
@@ -766,7 +766,7 @@ CALL prc_part3_ex24('00:01:00');
 FETCH ALL FROM "r_cur_part3_ex24";
 END;
 
-/* ex25 */
+/* ex25 */ -- Определить для каждого месяца процент ранних входов
 CREATE OR REPLACE PROCEDURE prc_part3_ex25(
     IN res_checks REFCURSOR = 'r_cur_part3_ex25'
 ) AS
