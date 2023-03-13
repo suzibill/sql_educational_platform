@@ -727,10 +727,10 @@ DECLARE
     int_time_out_h integer := 0;
     time_out_of_campus time;
 BEGIN
-    if int_time_out_m > 59 then
+    IF int_time_out_m > 59 THEN
         int_time_out_h := int_time_out_m/60;
         int_time_out_m := int_time_out_m - int_time_out_h * 60;
-    end if;
+    END IF;
     time_out_of_campus = make_time(int_time_out_h,int_time_out_m,0);
     OPEN res_check FOR
         WITH in_campus AS (SELECT t_t.peer,
