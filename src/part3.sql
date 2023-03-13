@@ -1,857 +1,792 @@
 /* ex01 */
-create or replace function fnc_part3_ex01() returns table (
-    Peer1 varchar,
-    Peer2 varchar,
-    PointsAmount integer
-) as
+CREATE OR REPLACE FUNCTION fnc_part3_ex01()
+    RETURNS TABLE
+            (
+                Peer1        varchar,
+                Peer2        varchar,
+                PointsAmount integer
+            )
+AS
 $$
-begin return query
-    select
-        t_p1.checking_peer as Peer1, 
-        t_p1.checked_peer as Peer2,
-        coalesce(t_p1.point_amount,0) - coalesce(t_p2.point_amount, 0) as PointsAmount
-    from 
-        transferred_points as t_p1
-        full join transferred_points as t_p2 
-            on t_p1.checking_peer = t_p2.checked_peer and t_p2.checking_peer =t_p1.checked_peer
-    where 
-        t_p1.id > t_p2.id
-        or t_p2.id is null;
-end;
-$$ language plpgsql;
+BEGIN
+    RETURN QUERY
+        SELECT t_p1.checking_peer                                              AS Peer1,
+               t_p1.checked_peer                                               AS Peer2,
+               coalesce(t_p1.point_amount, 0) - coalesce(t_p2.point_amount, 0) AS PointsAmount
+        FROM transferred_points AS t_p1
+                 FULL JOIN transferred_points AS t_p2
+                           ON t_p1.checking_peer = t_p2.checked_peer AND t_p2.checking_peer = t_p1.checked_peer
+        WHERE t_p1.id > t_p2.id
+           OR t_p2.id IS NULL;
+END;
+$$ LANGUAGE plpgsql;
 
 SELECT * FROM fnc_part3_ex01();
 
-create or replace view check_res as
-select 
-    checks.id,
-    checks.peer,
-    checks.task,
-    verter.state_ as verter_state,
-    p2p.state_ as p2p_state
-from checks
-    join p2p on p2p.check_ = checks.id
-        and (
-            p2p.state_ = 'Success' or p2p.state_ = 'Failure'
-        )
-        left join verter on verter.check_ = checks.id
-        and (
-            verter.state_ = 'Success'  or verter.state_  = 'Failure' or verter.state_ = null
-    );
+CREATE OR REPLACE VIEW check_res AS
+SELECT checks.id,
+       checks.peer,
+       checks.task,
+       verter.state_ AS verter_state,
+       p2p.state_    AS p2p_state
+FROM checks
+         JOIN p2p ON p2p.check_ = checks.id
+    AND (p2p.state_ = 'Success' OR p2p.state_ = 'Failure')
+         LEFT JOIN verter ON verter.check_ = checks.id
+    AND (verter.state_ = 'Success' OR verter.state_ = 'Failure' OR verter.state_ = NULL);
 
 /* ex02 */
-create or replace function fnc_part3_ex02() returns table (
-    Peer varchar,
-    Task varchar,
-    xp bigint
-) as
+CREATE OR REPLACE FUNCTION fnc_part3_ex02()
+    RETURNS TABLE
+            (
+                Peer varchar,
+                Task varchar,
+                xp   bigint
+            )
+AS
 $$
-begin return query
-    select 
-        check_res.peer as Peer,
-        check_res.task as Task,
-        xp.xp_amount as XP
-    from check_res
-    join xp on xp.check_ = check_res.id
-where 
-    check_res.p2p_state = 'Success' and 
-        (check_res.verter_state = 'Success' or check_res.verter_state is null);
-end;
-$$ language plpgsql;
+BEGIN
+    RETURN QUERY
+        SELECT check_res.peer AS Peer,
+               check_res.task AS Task,
+               xp.xp_amount   AS XP
+        FROM check_res
+                 JOIN xp ON xp.check_ = check_res.id
+        WHERE check_res.p2p_state = 'Success'
+          AND (check_res.verter_state = 'Success' OR check_res.verter_state IS NULL);
+END;
+$$ LANGUAGE plpgsql;
 
 SELECT * FROM fnc_part3_ex02();
 
 /* ex03 */
-create or replace function fnc_part3_ex03(pdate date) returns table(
-    peer varchar
-) as
+CREATE OR REPLACE FUNCTION fnc_part3_ex03(pdate date)
+    RETURNS TABLE
+            (
+                peer varchar
+            )
+AS
 $$
-begin return query 
-    select time_tracking.peer
-    from time_tracking
-    where date_ = pdate
-        and state_ = 2
-    group by time_tracking.peer
-    having count(state_) = 1;
-end;
-$$ language plpgsql;
+BEGIN
+    RETURN QUERY
+        SELECT time_tracking.peer
+        FROM time_tracking
+        WHERE date_ = pdate
+          AND state_ = 2
+        GROUP BY time_tracking.peer
+        HAVING COUNT(state_) = 1;
+END;
+$$ LANGUAGE plpgsql;
 
-select * from fnc_part3_ex03('2023-02-01');
+SELECT * FROM fnc_part3_ex03('2023-02-01');
 
-/* ex04 */    
-create or replace procedure prc_part3_ex04(
-    in res_checks refcursor = 'r_cur_part3_ex4'
-) as
+/* ex04 */
+CREATE OR REPLACE PROCEDURE prc_part3_ex04(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex4'
+) AS
 $$
-declare f_count integer := (
-    select 
-        count(id)
-    from check_res
-    where check_res.p2p_state = 'Failure' or check_res.verter_state = 'Failure'
-);
+DECLARE
+    f_COUNT   integer := (SELECT COUNT(id)
+                          FROM check_res
+                          WHERE check_res.p2p_state = 'Failure'
+                             OR check_res.verter_state = 'Failure');
+    all_COUNT integer := (SELECT COUNT(id)
+                          FROM check_res);
+    s_COUNT   integer= ALL_COUNT - f_COUNT;
 
-all_count integer := (
-    select count(id)
-    from check_res
-);
+BEGIN
+    OPEN res_checks FOR SELECT ROUND((f_COUNT * 100 / all_COUNT)::numeric, 0) AS UnsuccessfulChecks,
+                               ROUND((s_COUNT * 100 / all_COUNT)::numeric, 0) AS SuccessfulChecks;
+END;
+$$ LANGUAGE plpgsql;
 
-s_count integer= all_count - f_count;
-
-begin
-    open res_checks for select
-        round((f_count * 100/all_count)::numeric, 0) as UnsuccessfulChecks,
-        round((s_count * 100/all_count)::numeric , 0) as SuccessfulChecks;
-end;
-$$ language plpgsql;
-
-begin;
-    call prc_part3_ex04();
-    fetch all from "r_cur_part3_ex4";
-end;
+BEGIN;
+CALL prc_part3_ex04();
+FETCH ALL FROM "r_cur_part3_ex4";
+END;
 
 /* ex05 */
-create or replace procedure prc_part3_ex05(
-    in res_checks refcursor = 'r_cur_part3_ex5'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex05(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex5'
+) AS
 $$
-begin 
-open res_checks for 
-    select 
-        total.nickname as Peer,
-        total.points_total - minus.points_total as PointsChange
-    from (
-        (
-            select 
-                peers.nickname,
-                sum(coalesce(transferred_points.point_amount, 0)) as points_total
-            from peers
-                left join transferred_points on transferred_points.checking_peer = peers.nickname
-            group by
-                peers.nickname
-        ) as total join (
-            select
-                peers.nickname,
-                sum(coalesce(transferred_points.point_amount, 0)) as points_total
-            from peers
-                left join transferred_points on transferred_points.checked_peer = peers.nickname
-            group by
-                peers.nickname
-        ) as minus on total.nickname = minus.nickname
-    )
-    order by PointsChange desc;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        SELECT total.nickname AS Peer, total.points_total - minus.points_total AS PointsChange
+        FROM ((SELECT peers.nickname, SUM(coalesce(transferred_points.point_amount, 0)) AS points_total
+               FROM peers
+                        LEFT JOIN transferred_points ON transferred_points.checking_peer = peers.nickname
+               GROUP BY peers.nickname) AS total
+            JOIN (SELECT peers.nickname, SUM(coalesce(transferred_points.point_amount, 0)) AS points_total
+                  FROM peers
+                           LEFT JOIN transferred_points ON transferred_points.checked_peer = peers.nickname
+                  GROUP BY peers.nickname) AS minus ON total.nickname = minus.nickname)
+        ORDER BY PointsChange DESC;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex05();
-    fetch all from "r_cur_part3_ex5";
-end;
+BEGIN;
+CALL prc_part3_ex05();
+FETCH ALL FROM "r_cur_part3_ex5";
+END;
 
 /* ex06 */
-create or replace procedure prc_part3_ex06(
-    in res_checks refcursor = 'r_cur_part3_ex6'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex06(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex6'
+) AS
 $$
-begin 
-open res_checks for 
-    select 
-        total.nickname as Peer,
-        total.points_total - minus.points_total as PointsChange
-    from(
-        (    
-            select 
-                peers.nickname,
-                sum(coalesce(fnc_ex_1_p.PointsAmount, 0)) as points_total
-            from peers
-                left join (select * from fnc_part3_ex01()) as fnc_ex_1_p on peers.nickname = fnc_ex_1_p.Peer1
-            group by peers.nickname
-        ) as total join (
-            select
-                peers.nickname,
-                sum(coalesce(fnc_ex_1_p.PointsAmount, 0)) as points_total
-            from peers
-                left join (select * from fnc_part3_ex01()) as fnc_ex_1_p on peers.nickname = fnc_ex_1_p.Peer2
-             group by  peers.nickname
-        ) as minus on total.nickname = minus.nickname
-    )
-    order by PointsChange desc;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        SELECT total.nickname AS Peer, total.points_total - minus.points_total AS PointsChange
+        FROM ((SELECT peers.nickname, SUM(coalesce(fnc_ex_1_p.PointsAmount, 0)) AS points_total
+               FROM peers
+                        LEFT JOIN (SELECT * FROM fnc_part3_ex01()) AS fnc_ex_1_p ON peers.nickname = fnc_ex_1_p.Peer1
+               GROUP BY peers.nickname) AS total
+            JOIN (SELECT peers.nickname, SUM(coalesce(fnc_ex_1_p.PointsAmount, 0)) AS points_total
+                  FROM peers
+                           LEFT JOIN (SELECT * FROM fnc_part3_ex01()) AS fnc_ex_1_p
+                                     ON peers.nickname = fnc_ex_1_p.Peer2
+                  GROUP BY peers.nickname) AS minus
+              ON total.nickname = minus.nickname)
+        ORDER BY PointsChange DESC;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex06();
-    fetch all from "r_cur_part3_ex6";
-end;  
+BEGIN;
+CALL prc_part3_ex06();
+FETCH ALL FROM "r_cur_part3_ex6";
+END;
 
+CREATE OR REPLACE VIEW COUNT_c AS
+SELECT checks.date_,
+       checks.task,
+       COUNT(id) AS COUNT_checks
+FROM checks
+GROUP BY date_, task
+ORDER BY checks.date_;
 
-create or replace view count_c as
-select
-    checks.date_,
-    checks.task,
-    count(id) as count_checks
-from checks
-group by date_, task
-order by checks.date_;
-
-create or replace view maxi as 
-select 
-    count_c.date_,
-    max(count_c.count_checks) as max_count
-from count_c
-group by count_c.date_;
+CREATE OR REPLACE VIEW maxi AS
+SELECT COUNT_c.date_,
+       MAX(COUNT_c.COUNT_checks) AS max_COUNT
+FROM COUNT_c
+GROUP BY COUNT_c.date_;
 
 /* ex07 */
-create or replace procedure prc_part3_ex07(
-    in res_checks refcursor = 'r_cur_part3_ex7'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex07(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex7'
+) AS
 $$
-begin 
-open res_checks for 
-select
-    count_c.date_ as day,
-    count_c.task as Task
-from count_c 
-left join maxi on maxi.date_ = count_c.date_
-where maxi.max_count = count_c.count_checks;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        SELECT COUNT_c.date_ AS day,
+               COUNT_c.task  AS Task
+        FROM COUNT_c
+                 LEFT JOIN maxi ON maxi.date_ = COUNT_c.date_
+        WHERE maxi.max_COUNT = COUNT_c.COUNT_checks;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex07();
-    fetch all from "r_cur_part3_ex7";
-end;  
+BEGIN;
+CALL prc_part3_ex07();
+FETCH ALL FROM "r_cur_part3_ex7";
+END;
 
 /* ex08 */
-create or replace procedure prc_part3_ex08(
-    in res_checks refcursor = 'r_cur_part3_ex8'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex08(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex8'
+) AS
 $$
-declare 
-number_of_check bigint := (
-    select p2p_cpy.check_
-    from p2p p2p_cpy
-    left join p2p on p2p_cpy.check_ = p2p.check_
-    where p2p_cpy.state_ = 'Start' and (p2p.state_ = 'Success' or p2p.state_ = 'Failure')
-    order by p2p_cpy.check_ desc
-    limit 1
-);
-start_check time := (
-    select time_
-    from p2p
-    where check_ = number_of_check and state_ = 'Start'
-);
-end_check time := (
-    select time_
-    from p2p
-    where check_ = number_of_check and (state_ = 'Success' or state_ = 'Failure')
-);
-begin 
-open res_checks for 
-select
-    end_check - start_check as time_to_check;
-end;
-$$ language plpgsql;
+DECLARE
+    number_of_check bigint := (SELECT p2p_cpy.check_
+                               FROM p2p p2p_cpy
+                                        LEFT JOIN p2p ON p2p_cpy.check_ = p2p.check_
+                               WHERE p2p_cpy.state_ = 'Start'
+                                 AND (p2p.state_ = 'Success' OR p2p.state_ = 'Failure')
+                               ORDER BY p2p_cpy.check_ DESC
+                               LIMIT 1);
+    start_check     time   := (SELECT time_
+                               FROM p2p
+                               WHERE check_ = number_of_check
+                                 AND state_ = 'Start');
+    END_check       time   := (SELECT time_
+                               FROM p2p
+                               WHERE check_ = number_of_check
+                                 AND (state_ = 'Success' OR state_ = 'Failure'));
+BEGIN
+    OPEN res_checks FOR
+        SELECT END_check - start_check AS time_to_check;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex08();
-    fetch all from "r_cur_part3_ex8";
-end;  
+BEGIN;
+CALL prc_part3_ex08();
+FETCH ALL FROM "r_cur_part3_ex8";
+END;
 
 /* ex09 */
-create or replace procedure prc_part3_ex09(
-    in branch varchar,
-    in res_checks refcursor = 'r_cur_part3_ex9'
-) as 
+CREATE OR REPLACE PROCEDURE prc_part3_ex09(
+    IN branch varchar,
+    IN res_checks REFCURSOR = 'r_cur_part3_ex9'
+) AS
 $$
-declare
-branch_task_count int := (
-    select count(title)
-    from tasks
-    where title ~ ('^' || branch || '[0-9]')
-);
-begin 
-open res_checks for 
-with complete_tasks as (
-    select  
-        distinct on (checks.Peer,checks.task) checks.peer,
-        checks.task,
-        checks.date_
-    from checks 
-    inner join verter on verter.check_ = checks.id
-    inner join p2p on p2p.check_ = checks.id
-    where checks.task ~ ('^' || branch || '[0-9]') and 
-    p2p.state_ = 'Success' and (verter.state_ = 'Success' or verter.state_ = null)
-    order by checks.peer, checks.task, checks.date_ desc
-), count_uniq as (
-    select peer as Peer,
-           max(date_) as Day,
-           count (peer) as c_u
-    from complete_tasks
-    group by Peer
-)
-select count_uniq.Peer,
-       count_uniq.Day
-from count_uniq
-where c_u = branch_task_count
-order by count_uniq.Day desc;
-end;
-$$language plpgsql;
+DECLARE
+    branch_task_COUNT int := (SELECT COUNT(title)
+                              FROM tasks
+                              WHERE title ~ ('^' || branch || '[0-9]'));
+BEGIN
+    OPEN res_checks FOR
+        WITH complete_tasks AS (SELECT DISTINCT ON (checks.Peer,checks.task) checks.peer,
+                                                                             checks.task,
+                                                                             checks.date_
+                                FROM checks
+                                         INNER JOIN verter ON verter.check_ = checks.id
+                                         INNER JOIN p2p ON p2p.check_ = checks.id
+                                WHERE checks.task ~ ('^' || branch || '[0-9]')
+                                  AND p2p.state_ = 'Success'
+                                  AND (verter.state_ = 'Success' OR verter.state_ = NULL)
+                                ORDER BY checks.peer, checks.task, checks.date_ DESC),
+             COUNT_uniq AS (SELECT peer        AS Peer,
+                                   MAX(date_)  AS Day,
+                                   COUNT(peer) AS c_u
+                            FROM complete_tasks
+                            GROUP BY Peer)
+        SELECT COUNT_uniq.Peer,
+               COUNT_uniq.Day
+        FROM COUNT_uniq
+        WHERE c_u = branch_task_COUNT
+        ORDER BY COUNT_uniq.Day DESC;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex09('C');
-    fetch all from "r_cur_part3_ex9";
-end;  
+BEGIN;
+CALL prc_part3_ex09('C');
+FETCH ALL FROM "r_cur_part3_ex9";
+END;
 
-create or replace view a_f as (
-    select distinct on (a_f.peer1,a_f.peer2) *
-    from (
-            (
-                select peer1, peer2
-                from friends
-            )
-            union all
-            (
-                select peer2, peer1
-                from friends
-            )
-    ) as a_f
-);
+CREATE OR REPLACE VIEW a_f AS
+(
+SELECT DISTINCT ON (a_f.peer1, a_f.peer2) *
+FROM ((SELECT peer1, peer2
+       FROM friends)
+      UNION ALL
+      (SELECT peer2, peer1
+       FROM friends)) AS a_f
+    );
 
-create or replace view total_recom as (
-    select a_f.peer1,
-           recommendations.recommended_peer,
-           count(recommendations.recommended_peer) as c_r
-    from a_f
-    left join recommendations on a_f.peer2 = recommendations.peer
-    where  a_f.peer1 <> recommendations.recommended_peer
-    group by a_f.peer1, recommendations.recommended_peer
-    order by peer1
-);
+CREATE OR REPLACE VIEW total_recom AS
+(
+SELECT a_f.peer1,
+       recommendations.recommended_peer,
+       COUNT(recommendations.recommended_peer) AS c_r
+FROM a_f
+         LEFT JOIN recommendations ON a_f.peer2 = recommendations.peer
+WHERE a_f.peer1 <> recommendations.recommended_peer
+GROUP BY a_f.peer1, recommendations.recommended_peer
+ORDER BY peer1
+    );
 
 /* ex10 */
-create or replace procedure prc_part3_ex10 (
-    in res_checks refcursor = 'r_cur_part3_ex10'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex10(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex10'
+) AS
 $$
-begin 
-open res_checks for
-select 
-    distinct on(total_recom.peer1) total_recom.peer1 as Peer,
-    total_recom.recommended_peer as RecommendedPeer
-from total_recom;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        SELECT DISTINCT ON (total_recom.peer1) total_recom.peer1            AS Peer,
+                                               total_recom.recommended_peer AS RecommendedPeer
+        FROM total_recom;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex10();
-    fetch all from "r_cur_part3_ex10";
-end;  
+BEGIN;
+CALL prc_part3_ex10();
+FETCH ALL FROM "r_cur_part3_ex10";
+END;
 
 /* ex11 */
-create or replace procedure prc_part3_task11 (
-   ref refcursor,
-   in block_one varchar,
-   in block_two varchar
- )as 
+CREATE OR REPLACE PROCEDURE prc_part3_task11(
+    ref REFCURSOR,
+    IN block_one varchar,
+    IN block_two varchar
+) as
 $$
- declare count_peers int := (
-    select count(*)
-    from peers
- );
-begin open ref for 
-with t_b1 as (
-    select checks.peer as ch1
-    from checks 
-    where checks.task ~  ('^' || block_one || '[0-9]')
-    group by ch1
-), t_b2 as (
-    select checks.peer as ch2
-    from checks 
-    where checks.task ~  ('^' || block_two || '[0-9]')
-    group by ch2
-), t_b_all as (
-    select * from t_b1
-    intersect 
-    select * from t_b2
-),t_b_not_started as (
-    select nickname from peers
-    except 
-    (select * from t_b1
-    union 
-    select * from t_b2)
-)
-select round(
-            ((select count(*) * 100
-            from t_b1)/count_peers) - (select count(*)* 100
-            from t_b_all)/count_peers, 0) as StartedBlock1,
-        round(
-            ((select count(*)* 100
-            from t_b2)/count_peers) - (select count(*)* 100
-            from t_b_all)/count_peers , 0) as StartedBlock2,
-        round(
-            ((select count(*)* 100
-            from t_b_all)/count_peers), 0) as StartedBothBlocks,
-        round(
-            ((select count(*) * 100
-            from t_b_not_started)/count_peers), 0) as DidntStartAnyBlock;
-end;
-$$ language plpgsql;
+DECLARE
+    COUNT_peers int := (SELECT COUNT(*)
+                        FROM peers);
+BEGIN
+    OPEN ref FOR
+        WITH t_b1 AS (SELECT checks.peer AS ch1
+                      FROM checks
+                      WHERE checks.task ~ ('^' || block_one || '[0-9]')
+                      GROUP BY ch1),
+             t_b2 AS (SELECT checks.peer AS ch2
+                      FROM checks
+                      WHERE checks.task ~ ('^' || block_two || '[0-9]')
+                      GROUP BY ch2),
+             t_b_all AS (SELECT *
+                         FROM t_b1
+                         INTERSECT
+                         SELECT *
+                         FROM t_b2),
+             t_b_not_started AS (SELECT nickname
+                                 FROM peers
+                                 EXCEPT
+                                 (SELECT *
+                                  FROM t_b1
+                                  UNION
+                                  SELECT *
+                                  FROM t_b2))
+        SELECT ROUND(
+                           ((SELECT COUNT(*) * 100
+                             FROM t_b1) / COUNT_peers) - (SELECT COUNT(*) * 100
+                                                          FROM t_b_all) / COUNT_peers, 0) AS StartedBlock1,
+               ROUND(
+                           ((SELECT COUNT(*) * 100
+                             FROM t_b2) / COUNT_peers) - (SELECT COUNT(*) * 100
+                                                          FROM t_b_all) / COUNT_peers, 0) AS StartedBlock2,
+               ROUND(
+                       ((SELECT COUNT(*) * 100
+                         FROM t_b_all) / COUNT_peers), 0)                                 AS StartedBothBlocks,
+               ROUND(
+                       ((SELECT COUNT(*) * 100
+                         FROM t_b_not_started) / COUNT_peers), 0)                         AS DidntStartAnyBlock;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_task11('r_cur_part3_ex11','C','DO');
-    fetch all in r_cur_part3_ex11;
-end;  
+BEGIN;
+CALL prc_part3_task11('r_cur_part3_ex11', 'C', 'DO');
+FETCH ALL IN r_cur_part3_ex11;
+END;
 
 /* ex12 */
-create or replace procedure prc_part3_ex12 (ref refcursor, counts int default 1) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex12(ref REFCURSOR, COUNTs int DEFAULT 1) AS
 $$
-begin 
-open ref for
-select 
-    peers.nickname as Peer,
-    count(a_f.peer2) as FriendsCount
-from 
-    peers
-left join a_f on a_f.peer1 = peers.nickname
-group by peers.nickname
-order by FriendsCount desc
-limit counts;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN ref FOR
+        SELECT peers.nickname   AS Peer,
+               COUNT(a_f.peer2) AS friendsCOUNT
+        FROM peers
+                 LEFT JOIN a_f ON a_f.peer1 = peers.nickname
+        GROUP BY peers.nickname
+        ORDER BY friendsCOUNT DESC
+        LIMIT COUNTs;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex12('r_cur_part3_ex12',4);
-    fetch all in r_cur_part3_ex12;
-end;  
+BEGIN;
+CALL prc_part3_ex12('r_cur_part3_ex12', 4);
+FETCH ALL IN r_cur_part3_ex12;
+END;
 
 /* ex13 */
-create or replace procedure prc_part3_ex13(
-    in res_checks refcursor = 'r_cur_part3_ex13'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex13(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex13'
+) AS
 $$
-declare
-    fail int := (
-        select count(checks.id)
-        from checks
-        left join p2p on p2p.check_ = checks.id
-        left join peers on peers.nickname = checks.peer
-        left join verter on checks.id = verter.check_
-        where to_char(checks.date_, 'MM.DD') = to_char(peers.birthday,'MM.DD')
-            and (
-                p2p.state_ = 'Failure' or verter.state_ = 'Failure' 
-            )
+DECLARE
+    fail    int := (SELECT COUNT(checks.id)
+                    FROM checks
+                             LEFT JOIN p2p ON p2p.check_ = checks.id
+                             LEFT JOIN peers ON peers.nickname = checks.peer
+                             LEFT JOIN verter ON checks.id = verter.check_
+                    WHERE to_char(checks.date_, 'MM.DD') = to_char(peers.birthday, 'MM.DD')
+                      AND (
+                        p2p.state_ = 'Failure' OR verter.state_ = 'Failure'
+                        ));
+    success int := (SELECT COUNT(checks.id)
+                    FROM checks
+                             LEFT JOIN p2p ON p2p.check_ = checks.id
+                             LEFT JOIN peers ON peers.nickname = checks.peer
+                             LEFT JOIN verter ON checks.id = verter.check_
+                    WHERE to_char(checks.date_, 'MM.DD') = to_char(peers.birthday, 'MM.DD')
+                      AND (
+                                p2p.state_ = 'Success' AND (verter.state_ = 'Success' OR verter.state_ IS NULL)
+                        ));
+
+BEGIN
+    OPEN res_checks FOR SELECT ROUND((success * 100 / (success + fail))::numeric, 0) AS SuccessfulChecks,
+                               ROUND((fail * 100 / (fail + success))::numeric, 0)    AS UnsuccessfulChecks;
+END;
+$$ LANGUAGE plpgsql;
+
+BEGIN;
+CALL prc_part3_ex13();
+FETCH ALL FROM "r_cur_part3_ex13";
+END;
+
+CREATE OR REPLACE VIEW max_task_for_peer AS
+(
+SELECT checks.peer AS Peer,
+       task
+FROM xp
+         LEFT JOIN checks ON checks.id = xp.check_
+GROUP BY checks.task, checks.peer
     );
-    success int :=(
-        select count(checks.id)
-        from checks
-        left join p2p on p2p.check_ = checks.id
-        left join peers on peers.nickname = checks.peer
-        left join verter on checks.id = verter.check_
-        where to_char(checks.date_, 'MM.DD') = to_char(peers.birthday,'MM.DD')
-            and (
-                p2p.state_ = 'Success' and (verter.state_ = 'Success' or verter.state_ is null)
-            )
+
+CREATE OR REPLACE VIEW max_xp_for_task AS
+(
+SELECT checks.peer,
+       MAX(xp_amount) AS xp_max
+FROM xp
+         LEFT JOIN checks ON checks.id = xp.check_
+GROUP BY checks.task, checks.peer
     );
-
-begin
-    open res_checks for select
-        round((success * 100/(success+fail))::numeric , 0) as SuccessfulChecks,
-        round((fail * 100/(fail + success))::numeric , 0) as UnsuccessfulChecks;
-end;
-$$ language plpgsql;   
-
-begin;
-    call prc_part3_ex13();
-    fetch all from "r_cur_part3_ex13";
-end;
-
-create or replace view max_task_for_peer as (
-select 
-    checks.peer as Peer,
-    task, 
-from xp
-left join checks on checks.id = xp.check_
-group by checks.task, checks.peer
-);
-
-create or replace view max_xp_for_task as (
-select 
-    checks.peer,
-    max(xp_amount) as xp_max 
-from xp
-left join checks on checks.id = xp.check_
-group by checks.task, checks.peer
-);
 
 /* ex14 */
-create or replace procedure prc_part3_ex14(
-    in res_checks refcursor = 'r_cur_part3_ex14'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex14(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex14'
+) AS
 $$
-begin 
-open res_checks for select 
-    peer as Peer,
-    sum(xp_max) as XP 
-from max_xp_for_task
-group by Peer
-order by XP desc;
-end;
-$$ language plpgsql;   
+BEGIN
+    OPEN res_checks FOR SELECT peer        AS Peer,
+                               SUM(xp_max) AS XP
+                        FROM max_xp_for_task
+                        GROUP BY Peer
+                        ORDER BY XP DESC;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex14();
-    fetch all from "r_cur_part3_ex14";
-end;
+BEGIN;
+CALL prc_part3_ex14();
+FETCH ALL FROM "r_cur_part3_ex14";
+END;
 
 /* ex15 */
-create or replace procedure prc_part3_ex15(
-    in task1 varchar, 
-    in task2 varchar,
-    in task3 varchar,
-    in res_checks refcursor = 'r_cur_part3_ex15'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex15(
+    IN task1 varchar,
+    IN task2 varchar,
+    IN task3 varchar,
+    IN res_checks REFCURSOR = 'r_cur_part3_ex15'
+) AS
 $$
-begin
-open res_checks for 
-with t1 as (
-    select 
-        checks.peer
-    from xp
-    left join checks on xp.check_ = checks.id
-    where 
-        checks.task = task1 or checks.task = task2
-    group by peer 
-    having count(checks.task) =2
-), t2 as (
-    select distinct checks.peer
-    from xp
-    left join checks on xp.check_ = checks.id
-    where 
-        checks.task = task3   
-)
-select peer
-from t1 
-except 
-select peer
-from t2;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        WITH t1 AS (SELECT checks.peer
+                    FROM xp
+                             LEFT JOIN checks ON xp.check_ = checks.id
+                    WHERE checks.task = task1
+                       OR checks.task = task2
+                    GROUP BY peer
+                    HAVING COUNT(checks.task) = 2),
+             t2 AS (SELECT DISTINCT checks.peer
+                    FROM xp
+                             LEFT JOIN checks ON xp.check_ = checks.id
+                    WHERE checks.task = task3)
+        SELECT peer
+        FROM t1
+        EXCEPT
+        SELECT peer
+        FROM t2;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex15(
+BEGIN;
+CALL prc_part3_ex15(
         'C2_SimpleBashUtils',
         'C3_s21_string',
         'CPP6_3DViewer_v2_2'
     );
-    fetch all from "r_cur_part3_ex15";
-end;
+FETCH ALL FROM "r_cur_part3_ex15";
+END;
 
 /* ex16 */
-create or replace procedure prc_part3_ex16 (
-    in res_checks refcursor = 'r_cur_part3_ex16'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex16(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex16'
+) AS
 $$
-begin 
-open res_checks for 
-with recursive count_task_previous as (
-   (select tasks.title,
-           0 as prev_count
-    from tasks
-    where parent_task = 'None'
-   ) union all (
-    select tasks.title,
-            prev_count+1
-    from tasks 
-    inner join count_task_previous on count_task_previous.title = tasks.parent_task
-   )
-)
-select * 
-from count_task_previous;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        WITH RECURSIVE COUNT_task_prev AS
+                           ((SELECT tasks.title, 0 AS prev_COUNT FROM tasks WHERE parent_task = 'None')
+                            UNION ALL
+                            (SELECT tasks.title, prev_COUNT + 1
+                             FROM tasks
+                                      INNER JOIN COUNT_task_prev ON COUNT_task_prev.title = tasks.parent_task))
+        SELECT *
+        FROM COUNT_task_prev;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex16();
-    fetch all from "r_cur_part3_ex16";
-end;
+BEGIN;
+CALL prc_part3_ex16();
+FETCH ALL FROM "r_cur_part3_ex16";
+END;
 
-create or replace view checks_all as (
-    select  checks.id,
-            checks.date_,
-            p2p.time_,
-            case when
-                (
-                    xp.xp_amount is null or
-                    xp.xp_amount < tasks.max_xp * 0.8 or
-                    verter.state_ = 'Failure' or
-                    p2p.state_ = 'Failure'
-                ) then 0
-                else 1
-            end as success_check
-    from checks
-    join p2p on p2p.check_ = checks.id and p2p.state_ <> 'Start'
-    left join verter on verter.check_ = checks.id and verter.state_ <> 'Start'
-    left join xp on xp.check_ = checks.id
-    join tasks on tasks.title =checks.task    
-);
+CREATE OR REPLACE VIEW checks_all AS
+(
+SELECT checks.id,
+       checks.date_,
+       p2p.time_,
+       CASE
+           WHEN
+               (
+                       xp.xp_amount IS NULL OR
+                       xp.xp_amount < tasks.max_xp * 0.8 OR
+                       verter.state_ = 'Failure' OR
+                       p2p.state_ = 'Failure'
+                   ) THEN 0
+           ELSE 1
+           END AS success_check
+FROM checks
+         JOIN p2p ON p2p.check_ = checks.id AND p2p.state_ <> 'Start'
+         LEFT JOIN verter ON verter.check_ = checks.id AND verter.state_ <> 'Start'
+         LEFT JOIN xp ON xp.check_ = checks.id
+         JOIN tasks ON tasks.title = checks.task
+    );
 
 /* ex17 */
-create or replace procedure prc_part3_ex17 (
-    in numb int,
-    in res_checks refcursor = 'r_cur_part3_ex17'
-) as $$
-begin 
-open res_checks for
-with good_day as (
-    select *,
-          sum(success_check) over (
-            partition by date_
-            order by 
-                date_,
-                time_,
-                id rows between numb-1 preceding
-                and current row
-          ) as top_day
-    from checks_all
-)
-select date_ as Happy_Days
-from good_day
-group by date_
-having max(top_day) >= numb;
-end;
-$$language plpgsql;
+CREATE OR REPLACE PROCEDURE prc_part3_ex17(
+    IN numb int,
+    IN res_checks REFCURSOR = 'r_cur_part3_ex17'
+) AS
+$$
+BEGIN
+    OPEN res_checks FOR
+        WITH good_day AS (SELECT *,
+                                 SUM(success_check) over (
+                                     partition by date_
+                                     ORDER BY
+                                         date_,
+                                         time_,
+                                         id ROWS BETWEEN numb - 1 PRECEDING
+                                         AND CURRENT ROW
+                                     ) AS top_day
+                          FROM checks_all)
+        SELECT date_ AS Happy_Days
+        FROM good_day
+        GROUP BY date_
+        HAVING MAX(top_day) >= numb;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex17(1);
-    fetch all from "r_cur_part3_ex17";
-end;
+BEGIN;
+CALL prc_part3_ex17(1);
+FETCH ALL FROM "r_cur_part3_ex17";
+END;
 
 /* ex18 */
-create or replace procedure prc_part3_ex18(
-    in res_checks refcursor = 'r_cur_part3_ex18'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex18(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex18'
+) AS
 $$
-begin 
-open res_checks for 
-select Peer,
-       count(task) as XP
-from max_task_for_peer
-group by Peer
-order by XP desc
-limit 1;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        SELECT Peer,
+               COUNT(task) AS XP
+        FROM max_task_for_peer
+        GROUP BY Peer
+        ORDER BY XP DESC
+        LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex18();
-    fetch all from "r_cur_part3_ex18";
-end;
+BEGIN;
+CALL prc_part3_ex18();
+FETCH ALL FROM "r_cur_part3_ex18";
+END;
 
 /* ex19 */
-create or replace procedure prc_part3_ex19(
-    in res_checks refcursor = 'r_cur_part3_ex19'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex19(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex19'
+) AS
 $$
-begin 
-open res_checks for 
-select peer as Peer,
-       sum(xp_max) as XP
-from max_xp_for_task
-group by Peer
-order by XP desc
-limit 1;
-end;
-$$ language plpgsql;   
+BEGIN
+    OPEN res_checks FOR
+        SELECT peer        AS Peer,
+               SUM(xp_max) AS XP
+        FROM max_xp_for_task
+        GROUP BY Peer
+        ORDER BY XP DESC
+        LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex19();
-    fetch all from "r_cur_part3_ex19";
-end;
+BEGIN;
+CALL prc_part3_ex19();
+FETCH ALL FROM "r_cur_part3_ex19";
+END;
 
-/* ex20 */ -- target date hardcoded
-create or replace procedure prc_part3_ex20(
- in res_checks refcursor = 'r_cur_part3_ex20'
-) as $$
-begin
-open res_checks for
-with f as
-    (with tt as (select peer, sum(time_) as t2
-    from time_tracking
-    where state_ = '2'
-    group by peer)
-        select t.peer, (t2 - sum(time_) ):: time as time
-        from time_tracking t
-        join tt on tt.peer = t.peer
-        where state_ = '1' and date_ = '2023-02-01'
-        group by t.peer, t2
-        order by time desc
-        limit 1)
-select peer from f;
-end;
-$$ language plpgsql;
+/* ex20 */
+CREATE OR REPLACE PROCEDURE prc_part3_ex20(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex20'
+) AS
+$$
+BEGIN
+    OPEN res_checks FOR
+        WITH f AS
+                 (WITH tt AS (SELECT peer, SUM(time_) AS t2
+                              FROM time_tracking
+                              WHERE state_ = '2'
+                              GROUP BY peer)
+                  SELECT t.peer, (t2 - SUM(time_)):: time AS time
+                  FROM time_tracking t
+                           JOIN tt ON tt.peer = t.peer
+                  WHERE state_ = '1'
+                    AND date_ = '2023-02-01'
+                  GROUP BY t.peer, t2
+                  ORDER BY time DESC
+                  LIMIT 1)
+        SELECT peer
+        FROM f;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-call prc_part3_ex20();
-fetch all from "r_cur_part3_ex20";
-end;
+BEGIN;
+CALL prc_part3_ex20();
+FETCH ALL FROM "r_cur_part3_ex20";
+END;
 
 /* ex21 */
-create or replace procedure prc_part3_ex21 (
-    in n_count integer,
-    in timing_ time,
-    in res_checks refcursor = 'r_cur_part3_ex21'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex21(
+    IN n_COUNT integer,
+    IN timing_ time,
+    IN res_checks REFCURSOR = 'r_cur_part3_ex21'
+) AS
 $$
-begin 
-open res_checks for 
-    with n_peers as (
-        select  peer,
-                date_
-        from time_tracking
-        where state_ = 1 and time_ < timing_
-        group by peer,date_
-    )
-    select peer as Peer
-    from n_peers
-    group by peer
-    having(count(peer)) >= n_count;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        WITH n_peers AS (SELECT peer,
+                                date_
+                         FROM time_tracking
+                         WHERE state_ = 1
+                           AND time_ < timing_
+                         GROUP BY peer, date_)
+        SELECT peer AS Peer
+        FROM n_peers
+        GROUP BY peer
+        HAVING (COUNT(peer)) >= n_COUNT;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex21(2,'12:15:18');
-    fetch all from "r_cur_part3_ex21";
-end;
+BEGIN;
+CALL prc_part3_ex21(2, '12:15:18');
+FETCH ALL FROM "r_cur_part3_ex21";
+END;
 
 /* ex22 */
-create or replace procedure prc_part3_ex22(
-    in m_count integer,
-    in n_count integer,
-    in res_checks refcursor = 'r_cur_part3_ex22'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex22(
+    IN m_COUNT integer,
+    IN n_COUNT integer,
+    IN res_checks REFCURSOR = 'r_cur_part3_ex22'
+) AS
 $$
-begin 
-open res_checks for 
-select peer
-from time_tracking tt
-where tt.state_ = 2 
-    and (current_date - tt.date_) <= n_count
-    and not tt.time_ = (
-        select max(tt2.time_)
-        from time_tracking tt2
-        where tt2.date_ = tt.date_ and tt2.peer = tt.peer
-    )
-group by peer
-having (count (peer)) > m_count;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        SELECT peer
+        FROM time_tracking tt
+        WHERE tt.state_ = 2
+          AND (current_date - tt.date_) <= n_COUNT
+          AND NOT tt.time_ = (SELECT MAX(tt2.time_)
+                              FROM time_tracking tt2
+                              WHERE tt2.date_ = tt.date_
+                                AND tt2.peer = tt.peer)
+        GROUP BY peer
+        HAVING (COUNT(peer)) > m_COUNT;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex22(1,50);
-    fetch all from "r_cur_part3_ex22";
-end;
+BEGIN;
+CALL prc_part3_ex22(1, 50);
+FETCH ALL FROM "r_cur_part3_ex22";
+END;
 
 /* ex23 */
-create or replace procedure prc_part3_ex23 (
-    in res_check refcursor = 'r_cur_part3_ex23'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex23(
+    IN res_check REFCURSOR = 'r_cur_part3_ex23'
+) AS
 $$
-begin
-open res_check for
-    with t1 as (
-    select  t_t.peer
-    from time_tracking t_t
-    where state_ = 1 and t_t.date_ = current_date
-    group by t_t.peer, t_t.date_, t_t.time_
-    order by time_ desc
-    limit 1
-    )
-    select * from t1;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_check FOR
+        WITH t1 AS (SELECT t_t.peer
+                    FROM time_tracking t_t
+                    WHERE state_ = 1
+                      AND t_t.date_ = current_date
+                    GROUP BY t_t.peer, t_t.date_, t_t.time_
+                    ORDER BY time_ DESC
+                    LIMIT 1)
+        SELECT *
+        FROM t1;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex23();
-    fetch all from "r_cur_part3_ex23";
-end;
+BEGIN;
+CALL prc_part3_ex23();
+FETCH ALL FROM "r_cur_part3_ex23";
+END;
 
-abort transaction ;
+ABORT TRANSACTION;
 
 /* ex24 */
-create or replace procedure  prc_part3_ex24 (
-    in time_out_of_campus time,
-    in res_check refcursor = 'r_cur_part3_ex24'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex24(
+    IN time_out_of_campus time,
+    IN res_check REFCURSOR = 'r_cur_part3_ex24'
+) AS
 $$
-declare yesterday_date_ date := '2023-04-20';
-begin
-open res_check for
-    with in_campus as (
-        select t_t.peer,
-               t_t.time_,
-               t_t.date_
-        from time_tracking t_t
-        where t_t.state_ = 1 and t_t.date_ = yesterday_date_
-            and not t_t.time_ = (
-                select min(t_t1.time_)
-                from time_tracking t_t1
-                where t_t.date_ = t_t1.date_ and t_t.peer = t_t1.peer
-            )
-        order by t_t.peer,t_t.time_
-    ), out_of_campus as (
-        select t_t.peer,
-               t_t.time_,
-               t_t.date_
-        from time_tracking t_t
-        where t_t.state_ = 2 and t_t.date_ = yesterday_date_
-            and not t_t.time_ = (
-                select max(t_t1.time_)
-                from time_tracking t_t1
-                where t_t.date_ = t_t1.date_ and t_t.peer = t_t1.peer
-            )
-        order by t_t.peer,t_t.time_
-    ), peers_outs as (
-        select o_c.peer,
-               o_c.time_ as out_time,
-               o_c.date_,
-               i_c.time_ as in_time,
-               i_c.time_ - o_c.time_ as max_time_out
-        from out_of_campus o_c
-        inner join in_campus i_c on i_c.peer = o_c.peer
-    )
-    select distinct peer from peers_outs
-     where max_time_out> time_out_of_campus;
-end;
-$$ language plpgsql;
+DECLARE
+    yesterday_date_ date := '2023-04-20';
+BEGIN
+    OPEN res_check FOR
+        WITH in_campus AS (SELECT t_t.peer,
+                                  t_t.time_,
+                                  t_t.date_
+                           FROM time_tracking t_t
+                           WHERE t_t.state_ = 1
+                             AND t_t.date_ = yesterday_date_
+                             AND NOT t_t.time_ = (SELECT min(t_t1.time_)
+                                                  FROM time_tracking t_t1
+                                                  WHERE t_t.date_ = t_t1.date_
+                                                    AND t_t.peer = t_t1.peer)
+                           ORDER BY t_t.peer, t_t.time_),
+             out_of_campus AS (SELECT t_t.peer,
+                                      t_t.time_,
+                                      t_t.date_
+                               FROM time_tracking t_t
+                               WHERE t_t.state_ = 2
+                                 AND t_t.date_ = yesterday_date_
+                                 AND NOT t_t.time_ = (SELECT MAX(t_t1.time_)
+                                                      FROM time_tracking t_t1
+                                                      WHERE t_t.date_ = t_t1.date_
+                                                        AND t_t.peer = t_t1.peer)
+                               ORDER BY t_t.peer, t_t.time_),
+             peers_outs AS (SELECT o_c.peer,
+                                   o_c.time_             AS out_time,
+                                   o_c.date_,
+                                   i_c.time_             AS in_time,
+                                   i_c.time_ - o_c.time_ AS max_time_out
+                            FROM out_of_campus o_c
+                                     INNER JOIN in_campus i_c ON i_c.peer = o_c.peer)
+        SELECT DISTINCT peer
+        FROM peers_outs
+        WHERE max_time_out > time_out_of_campus;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-    call prc_part3_ex24('00:01:00');
-    fetch all from "r_cur_part3_ex24";
-end;
+BEGIN;
+CALL prc_part3_ex24('00:01:00');
+FETCH ALL FROM "r_cur_part3_ex24";
+END;
 
 /* ex25 */
-create or replace procedure prc_part3_ex25(
-in res_checks refcursor = 'r_cur_part3_ex25'
-) as
+CREATE OR REPLACE PROCEDURE prc_part3_ex25(
+    IN res_checks REFCURSOR = 'r_cur_part3_ex25'
+) AS
 $$
-begin
-open res_checks for
-    select Month, round(sum(earlyentries) * 100/ sum(totalentries)) Early_Entries
-        from
-    (SELECT peer,
-            to_char(a.date_, 'Month') as Month,
-            COUNT(*)                                                   AS TotalEntries,
-            COUNT(CASE WHEN a.time_ < '12:00:00' THEN 1 ELSE NULL END) AS EarlyEntries
-     FROM (select peer, date_, time_ from time_tracking where state_ = '1') a
-              join peers p on p.nickname = a.peer
-     GROUP BY peer, Month, p.birthday, a.date_
-     having extract(month from a.date_) = extract(month from p.birthday)) b
-group by b.Month
-;
-end;
-$$ language plpgsql;
+BEGIN
+    OPEN res_checks FOR
+        SELECT Month, ROUND(SUM(earlyentries) * 100 / SUM(totalentries)) Early_Entries
+        FROM (SELECT peer,
+                     to_char(a.date_, 'Month')                                  AS Month,
+                     COUNT(*)                                                   AS TotalEntries,
+                     COUNT(CASE WHEN a.time_ < '12:00:00' THEN 1 ELSE NULL END) AS EarlyEntries
+              FROM (SELECT peer, date_, time_ FROM time_tracking WHERE state_ = '1') a
+                       JOIN peers p ON p.nickname = a.peer
+              GROUP BY peer, Month, p.birthday, a.date_
+              HAVING extract(month FROM a.date_) = extract(month FROM p.birthday)) b
+        GROUP BY b.Month;
+END;
+$$ LANGUAGE plpgsql;
 
-begin;
-call prc_part3_ex25();
-fetch all from "r_cur_part3_ex25";
-end;
+BEGIN;
+CALL prc_part3_ex25();
+FETCH ALL FROM "r_cur_part3_ex25";
+END;
