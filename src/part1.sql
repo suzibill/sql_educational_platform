@@ -56,8 +56,7 @@ CREATE TABLE
 (
     title       varchar PRIMARY KEY,
     parent_task varchar NOT NULL,
-    max_xp      bigint  NOT NULL,
-    CONSTRAINT fk_title_parent_task FOREIGN KEY (parent_task) REFERENCES tasks (title)
+    max_xp      bigint  NOT NULL
 );
 
 CREATE TABLE
